@@ -1,0 +1,21 @@
+import Web3 from 'web3';
+
+
+let web3
+
+if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
+    //we are in the browser and metamask is running
+    web3 = new Web3(window.web3.currentProvider)
+} else {
+    //we are on the server OR the user is not running metamask
+    const provider = new Web3.providers.HttpProvider(
+        'https://rinkeby.infura.io/YDnIBMV5OY1S3hf9iVWn'
+    );
+    web3 = new Web3(provider);
+};
+
+//window is a global var that is only available inside the browse, not available in node.js where our server is currently running (window error explanation)
+//can't assume that the var window will be defined in other servers
+// what we had --> const web3 = new Web3(window.web3.currentProvider);//give it the provider from metamask
+
+export default web3;
