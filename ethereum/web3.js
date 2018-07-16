@@ -1,4 +1,5 @@
-import Web3 from 'web3';
+// import Web3 from 'web3';
+const Web3 = require('./web3');
 
 
 let web3
@@ -18,4 +19,5 @@ if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
 //can't assume that the var window will be defined in other servers
 // what we had --> const web3 = new Web3(window.web3.currentProvider);//give it the provider from metamask
 
-export default web3;
+// export default web3;
+module.exports = web3;
