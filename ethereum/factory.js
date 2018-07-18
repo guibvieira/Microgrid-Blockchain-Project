@@ -1,12 +1,15 @@
 // import web3 from './web3';
 // import HouseholdFactory from './build/HouseholdFactory.json';
-const web3 = require('./web3');
+// const ganache = require('ganache-cli');
+// const Web3 = require('web3');
+// const web3 = new Web3(ganache.provider());
+const web3 =require('./web3-ganache');
 const HouseholdFactory = require ('./build/HouseholdFactory.json');
 
 //replace this address with the deployed version of batteryfactory
 const instance = new web3.eth.Contract(
     JSON.parse(HouseholdFactory.interface),
-    '0x29AEE0aadc244f11dDd35Dcd28375B4F00E18e9B'
+    '0xF62D2Bd162c4d685A889d8769194443E92DD26FD'
 );
 
 // export default instance;

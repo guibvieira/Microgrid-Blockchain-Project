@@ -123,6 +123,7 @@ contract Household{
 
         hh = Household(recipient);
         hh.discharge(amount);
+        
         recipient.transfer(price*amount/1000); //calculate for kWh
         
         return true;
@@ -159,6 +160,14 @@ contract Exchange {
     }
 
     function () public payable{}
+
+    function getBid(uint index) public {
+        return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
+    }
+
+    function getAsk(uint index) public {
+        return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
+    }
     
 
     function placeBid(uint _price, uint _amount) external returns (bool) {

@@ -2,6 +2,7 @@ const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3(ganache.provider());
+//const web3 = require('../ethereum/web3-ganache.js');
 //const web3 = require('../ethereum/web3.js');
 
 const compiledFactory = require('../ethereum/build/HouseholdFactory.json');
@@ -13,6 +14,7 @@ let accounts;
 let factory;
 let householdAddress;
 let household;
+let exchange;
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
@@ -157,12 +159,12 @@ describe('Households', () => {
         // console.log('balance2', pre_balance2);
 
         
-        confirmation1=await household1.methods.buyEnergy(2000, household2.options.address, 10).send({
+        confirmation1= await household1.methods.buyEnergy(2000, household2.options.address, 10).send({
             from: accounts[0],
             gas: '1999999'
         });
 
-        confirmation2=await household1.methods.buyEnergy(2000, household2.options.address, 10).send({
+        confirmation2= await household1.methods.buyEnergy(2000, household2.options.address, 10).send({
             from: accounts[0],
             gas: '1999999'
         });
@@ -185,7 +187,7 @@ describe('Households', () => {
            
     });
 
-    it('can submit a Bid to exchange from Household Contract', async () =>{
+    it('can submit a Bid and an Ask to exchange from Household Contract', async () =>{
         addressExchange = exchange.options.address;
         
         //set the exchange address necessary to interact with it
@@ -208,7 +210,7 @@ describe('Households', () => {
             gas: '1000000'
         });
 
-        await household1.methods.submitBid(9, 1000).send({
+        await household1.methods.submitAsk(11, 1000).send({
            from: accounts[0],
            gas: '1000000'
         });
