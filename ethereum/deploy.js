@@ -1,21 +1,22 @@
 //Using infura
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const Web3 = require('web3');
-// const compiledFactory = require('./build/HouseholdFactory.json');
+const HDWalletProvider = require('truffle-hdwallet-provider');
+const Web3 = require('web3');
+const compiledFactory = require('./build/HouseholdFactory.json');
+const compiledExchange = require('./build/Exchange.json');
 
-// const provider = new HDWalletProvider('pulse stable fever half settle phone impact theory crater grit chef census',
-//                                     'https://rinkeby.infura.io/YDnIBMV5OY1S3hf9iVWn'
-// );
-// const web3 = new Web3(provider);
+const provider = new HDWalletProvider('pulse stable fever half settle phone impact theory crater grit chef census',
+                                    'https://rinkeby.infura.io/v3/ec8b3999af1c4c32a5ab8d98b303d3ba'
+);
+const web3 = new Web3(provider);
 
 
 //Using ganache
-const ganache = require('ganache-cli');
-// const Web3 = require('web3');
-// const web3 = new Web3(ganache.provider());
-const web3 = require('./web3-ganache');
-const compiledFactory = require('./build/HouseholdFactory.json');
-const compiledExchange = require('./build/Exchange.json');
+// const ganache = require('ganache-cli');
+// // const Web3 = require('web3');
+// // const web3 = new Web3(ganache.provider());
+// const web3 = require('./web3');
+// const compiledFactory = require('./build/HouseholdFactory.json');
+// const compiledExchange = require('./build/Exchange.json');
 
 const deployFactory = async () => {
     const accounts = await web3.eth.getAccounts();

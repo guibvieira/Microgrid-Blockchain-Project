@@ -1,9 +1,9 @@
 const assert = require('assert');
-const ganache = require('ganache-cli');
-const Web3 = require('web3');
-const web3 = new Web3(ganache.provider());
+//const ganache = require('ganache-cli');
+// const Web3 = require('web3');
+// const web3 = new Web3(ganache.provider());
 //const web3 = require('../ethereum/web3-ganache.js');
-//const web3 = require('../ethereum/web3.js');
+const web3 = require('../ethereum/web3.js');
 
 const compiledFactory = require('../ethereum/build/HouseholdFactory.json');
 const compiledCampaign = require('../ethereum/build/Household.json');

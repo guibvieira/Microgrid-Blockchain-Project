@@ -5,7 +5,7 @@
 const ganache = require('ganache-cli');
 // const Web3 = require('web3');
 // const web3 = new Web3(ganache.provider());
-const web3 = require('../ethereum/web3-ganache.js');
+const web3 = require('../ethereum/web3.js');
 //probably same as web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
 const Agent = require('../models/agent.js');
 const assert = require('assert');
