@@ -1,6 +1,6 @@
 const routes = require('next-routes')();
 
 routes
-.add('/households/new', '/households/new');
+    .add('household', '/households/:address', 'households/household');
 
 module.exports = routes;
