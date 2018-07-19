@@ -21,21 +21,30 @@ const factory = require('../ethereum/factory.js');
 
 class Agent{
     constructor(batteryCapacity){
-        this.getDate();
-        this.getCurrentTime();
-        this.balance =0;
-        // this.getAccount(0);
-        // this.getAgentBalance();
-        //this.deploymentSuccess = this.deployContract(batteryCapacity);
+        this.currentDate = this.getDate();
+        this.currentTime = this.getCurrentTime();
+
+        this.excessEnergy = 0;
+        this.batteryCapacity = batteryCapacity;
+
+        this.balance = 0;
+        this.historicalDemand = [];
+        this.historicalSupply = [];
+
+        this.ethereumAddress = '';
+        this.accounts = [];
+        this.deploymentSuccess = false;
+
+        // TODO: create household variable
     }
 
     async setSmartMeterDetails(demand, supply){
-        if(supply>demand){
+        if(supply > demand){
             this.excessEnergy = supply - demand;
         }
         await this.newHousehold.methods.setSmartMeterDetails(demand, supply, this.excessEnergy).send({
             from: this.ethereumAddress,
-            gas: '1000000'
+            gas: '1999999'
         });
     }
 
@@ -64,13 +73,14 @@ class Agent{
         });
     }
 
-    async deployContract (batteryCapacity ) {
+    async deployContract(batteryCapacity) {
 
         await factory.methods.createHousehold(batteryCapacity).send({
             from: this.ethereumAddress,
             gas:'1999999'
         });
 
+        
         let households = await factory.methods.getDeployedHouseholds().call(); 
 
         let newHousehold = await new web3.eth.Contract(
@@ -110,23 +120,25 @@ class Agent{
     }
 
     getDate(){
-        var today = new Date();
-        var day = today.getDate();
-        var month = today.getMonth() + 1;
-        var year = today.getFullYear();
-        this.currentDate = day + "/" + month + "/" + year;
+        let today = new Date();
+        let day = today.getDate();
+        let month = today.getMonth() + 1;
+        let year = today.getFullYear();
+        let currentDate = day + "/" + month + "/" + year;
+        return currentDate;
     }
 
     getCurrentTime() {
-        var time = new Date();
-        var hours = time.getHours();
-        var minutes = time.getMinutes();
+        let time = new Date();
+        let hours = time.getHours();
+        let minutes = time.getMinutes();
         
         if (minutes < 10) {
             minutes = "0" + minutes;
          }
 
-        this.currentTime = hours + ":" + minutes;
+        let currentTime = hours + ":" + minutes;
+        return currentTime;
     }
 }
 

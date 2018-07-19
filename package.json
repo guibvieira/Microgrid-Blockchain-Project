@@ -4,6 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "reset:modules": "rm -rf node_modules && npm install",
+    "compile": "node ./ethereum/compile.js",
+    "deploy": "node ./ethereum/deploy.js",
+    "cdeploy": "npm run compile && npm run deploy",
     "test": "node ./test/testRunner.js",
     "dev": "next dev"
   },

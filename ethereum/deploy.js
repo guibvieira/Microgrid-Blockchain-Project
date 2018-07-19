@@ -26,7 +26,9 @@ const deployFactory = async () => {
         .deploy({ data: '0x' + compiledFactory.bytecode })
         .send({ gas: '1999999',from: accounts[0]});
     
-    console.log('Contract Factory deployed to', result.options.address);
+    const deployAddress = result.options.address;
+    console.log('Contract Factory deployed to', deployAddress);
+    return deployAddress;
 };
 
 const deployExchange = async () => {
@@ -37,9 +39,14 @@ const deployExchange = async () => {
     const result = await new web3.eth.Contract(JSON.parse(compiledExchange.interface))
         .deploy({ data: '0x' + compiledExchange.bytecode })
         .send({ gas: '1999999',from: accounts[0]});
-    
-    console.log('Contract Exchange deployed to', result.options.address);
+
+    const deployAddress = result.options.address;
+    console.log('Contract Exchange deployed to', deployAddress);
+    return deployAddress;
 };
 
 deployFactory();
 deployExchange();
+
+exports.deployFactory;
+exports.deployExchange;
