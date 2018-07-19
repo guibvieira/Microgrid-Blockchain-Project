@@ -54,8 +54,8 @@ describe('Agents', () => {
         await agent.placeBuy(10,1000);
         await agent.placeAsk(11,1000);
 
-        let bid = await exchange.methods.getBids(0).call();
-        let ask = await exchange.methods.getAsks(0).call();
+        let bid = await exchange.methods.getBid(0).call();
+        let ask = await exchange.methods.getAsk(0).call();
         // console.log(bid);
         // console.log(ask);
         assert(bid);
@@ -91,8 +91,8 @@ describe('Agents', () => {
         let asks = new Array();
         
         for(i=0; i<bidsCount; i++){
-            let bid = await exchange.methods.getBids(i).call();
-            let ask = await exchange.methods.getAsks(i).call();
+            let bid = await exchange.methods.getBid(i).call();
+            let ask = await exchange.methods.getAsk(i).call();
             bids[i] = parseInt(bid['2'], 10);
             asks[i] = parseInt(ask['2'], 10);
         }
