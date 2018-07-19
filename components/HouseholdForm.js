@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import { Form, Input, Message, Button } from 'semantic-ui-react';
 import web3 from '../ethereum/web3';
-// import { Router } from '../routes';
+import factory from '../ethereum/factory';
+import { Router } from '../routes';
 
 class HouseholdForm extends Component {
 
@@ -25,11 +26,13 @@ class HouseholdForm extends Component {
                 from: accounts[0],
                 gas: '1000000'
             });
+
+            Router.replaceRoute('/');
         } catch (err) {
             this.setState({errorMessage: err.message})
         }
         
-        this.setState({loading: false})
+        this.setState({loading: false});
     }
 
     onInputChanged(event) {

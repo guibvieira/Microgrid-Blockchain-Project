@@ -10,7 +10,7 @@ const Exchange = require ('./build/Exchange.json');
 //replace this address with the deployed version of batteryfactory
 const instance = new web3.eth.Contract(
     JSON.parse(Exchange.interface),
-    '0x5E3b3a7BBE6BB55b7011E0838c9a7ec0092d0BE9'
+    '0xeA1bEFB1362bba310a42efc94a21088e480D5497'
 );
 
 // export default instance;
