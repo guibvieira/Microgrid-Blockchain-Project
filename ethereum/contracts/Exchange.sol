@@ -61,6 +61,12 @@ contract Household{
     }
 
     function () public payable {}
+
+    function setSmartMeterDetails(uint _demand, uint _supply, uint _excessEnergy) public {
+        demand = _demand;
+        supply = _supply;
+        excessEnergy = _excessEnergy;
+    }
     
     function getBids(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
@@ -161,11 +167,11 @@ contract Exchange {
 
     function () public payable{}
 
-    function getBid(uint index) public {
+    function getBid(uint index) public returns(address, uint, uint, uint){
         return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
     }
 
-    function getAsk(uint index) public {
+    function getAsk(uint index) public  returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
     
@@ -176,20 +182,6 @@ contract Exchange {
         b.price = _price;
         b.amount = _amount;
         b.date = now;
-
-        //if it's already higher price than the highest price in Bids, then place it at end of array
-        //check if it's larger price than ask and match them if it is
-        if (Bids.length > 0) {
-            if (_price > Bids[Bids.length-1].price){
-                
-                Bids.push(b);
-
-                if(Asks.length>0){
-                    matchBid(Bids.length-1 ,Asks.length-1 );
-                }
-                return true;
-            }
-        }
 
         for(uint i = 0; i < Bids.length; i++) {
             if(Bids[i].price > _price) {
@@ -226,19 +218,6 @@ contract Exchange {
         a.amount = _amount;
         a.date = now;
 
-        //if it's already lower price than the lowest price in asks, then place it at end of array
-        //check if it's lower price than bid and match them if it is
-        if (Asks.length > 0) {
-            if (_price < Asks[Bids.length-1].price){
-                
-                Asks.push(a);
-
-                if (Bids.length>0){
-                    matchBid(Bids.length-1,Asks.length-1 );
-                }
-                return true;
-            }
-        }
 
         for (uint i = 0; i < Asks.length; i ++) {
             if(Asks[i].price < _price) {
@@ -266,8 +245,7 @@ contract Exchange {
     }
 
     function matchBid(uint bid_index, uint ask_index) public returns (bool) {
-        if (Bids[bid_index].amount <= 0 || Bids[bid_index].price < Asks[ask_index].price) {
-            cleanAskLedger();
+        if (Bids[bid_index].price < Asks[ask_index].price) {
             return true;
         }
         
