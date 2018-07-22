@@ -11,9 +11,8 @@
 
 //Using ganache
 const ganache = require('ganache-cli');
-// const Web3 = require('web3');
-// const web3 = new Web3(ganache.provider());
-const web3 = require('./web3-ganache');
+const Web3 = require('web3');
+const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
 const compiledFactory = require('./build/HouseholdFactory.json');
 const compiledExchange = require('./build/Exchange.json');
 
