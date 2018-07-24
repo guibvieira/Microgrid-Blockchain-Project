@@ -14,17 +14,26 @@ contract HouseholdFactory{
         // alternatively (new Household).value(1000000)(capacity, msg.sender, owner)
         // to send ether with creation
         deployedHouseholds.push(newHousehold);
+        balances[newHousehold] = 0;
     }
     
     function getDeployedHouseholds() public view returns (address[]) {
         return deployedHouseholds;
     }
+
+    function addBalance(address target,uint price) public {
+        balances[target] += price;
+    }
+    
+    function subBalance(address target,uint price) public {
+        balances[target] -= price;
+    }
 }
 
 contract Household{
     
-    uint public demand;
-    uint public supply;
+    uint public currentDemand;
+    uint public currentSupply;
     uint public batteryCapacity;
     uint public amountOfCharge;
     uint public excessEnergy;
@@ -49,7 +58,7 @@ contract Household{
     Household hh;
     
     
-    constructor(uint capacity, address creator, address watch_address) public {
+    constructor(uint capacity, address creator, address watch_address) public payable{
         owner = creator;
         batteryCapacity = capacity;
         amountOfCharge = capacity;
@@ -63,10 +72,22 @@ contract Household{
     function () public payable {}
 
     function setSmartMeterDetails(uint _demand, uint _supply, uint _excessEnergy) public {
-        demand = _demand;
-        supply = _supply;
+        currentDemand = _demand;
+        currentSupply = _supply;
         excessEnergy = _excessEnergy;
     }
+
+    function getSmartMeterDetails() public view returns(address, uint, uint, uint, uint, uint){
+        return (
+            owner, 
+            currentDemand,
+            currentSupply,
+            batteryCapacity,
+            amountOfCharge,
+            excessEnergy
+        );
+    }
+
     
     function getBids(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
@@ -96,7 +117,7 @@ contract Household{
         amountOfCharge -= amount;
     }
     
-    function submitBid(uint price, uint amount) public restricted {
+    function submitBid(uint price, uint amount) public restricted returns (bool){
         Bid memory newBid = Bid({
             origin: contractAddress,
             price: price,
@@ -106,10 +127,11 @@ contract Household{
         
         Bids.push(newBid);
         ex = Exchange(exchangeAddress);
-        ex.placeBid(price, amount);
+        return ex.placeBid(price, amount);
+        
     }
     
-    function submitAsk(uint price, uint amount) public restricted {
+    function submitAsk(uint price, uint amount) public restricted returns(bool) {
         Bid memory newAsk = Bid({
             origin: contractAddress,
             price: price,
@@ -119,20 +141,31 @@ contract Household{
         
         Asks.push(newAsk);
         ex = Exchange(exchangeAddress);
-        ex.placeAsk(price, amount);
+        return ex.placeAsk(price, amount);
     }
 
-    function buyEnergy(uint amount, address recipient, uint price ) external payable returns(bool successful){
-        //require(address(this).balance > price);
-        
-        amountOfCharge += amount;
+    function buyEnergy(uint _amount, address _recipient, uint _price ) public payable returns(bool successful){
 
-        hh = Household(recipient);
-        hh.discharge(amount);
-        
-        recipient.transfer(price*amount/1000); //calculate for kWh
+        amountOfCharge += _amount;
+
+        hh = Household(_recipient);
+        hh.discharge(_amount);
+
+
+        uint finalPrice = (_amount/1000)*_price;
+        _recipient.transfer(finalPrice);
         
         return true;
+    }
+
+    function deleteBid(uint bid_index) public {
+        ex = Exchange(exchangeAddress);
+        ex.removeBid(bid_index);
+    }
+
+    function deleteAsk(uint ask_index) public {
+        ex = Exchange(exchangeAddress);
+        ex.removeAsk(ask_index);
     }
 
     modifier restricted() {
@@ -162,6 +195,10 @@ contract Exchange {
     Ask[] public Asks;
     Household hh;
     
+    bool public transactionConfirmation;
+
+    constructor() public payable{}
+    
     function deposit() public payable {
     }
 
@@ -174,9 +211,17 @@ contract Exchange {
     function getAsk(uint index) public  returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
+
+    function removeBid(uint _bid_index) public returns (bool){
+        delete Bids[_bid_index];
+    }
+
+    function removeAsk(uint _ask_index) public returns (bool){
+        delete Asks[_ask_index];
+    }
     
 
-    function placeBid(uint _price, uint _amount) external returns (bool) {
+    function placeBid(uint _price, uint _amount) public returns (bool) {
         Bid memory b;
         b.owner = msg.sender;
         b.price = _price;
@@ -211,7 +256,7 @@ contract Exchange {
         return true;
     }
 
-    function placeAsk(uint _price, uint _amount) external returns (bool) {
+    function placeAsk(uint _price, uint _amount) public returns (bool) {
         Ask memory a;
         a.owner = msg.sender;
         a.price = _price;
@@ -250,18 +295,21 @@ contract Exchange {
         }
         
         hh = Household(Bids[bid_index].owner);
-        //uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
+        
         uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) >= 0){
             uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
             uint calcAmount = Bids[bid_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
+            transactionConfirmation = hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
             
             Bids[bid_index].amount = remainder;
-            Asks[ask_index].amount = 0;
+            if(remainder==0){
+                delete Bids[bid_index];
+            }
+            delete Asks[ask_index];
             
-            cleanAskLedger();
             return true;
         }
         
@@ -271,16 +319,19 @@ contract Exchange {
             
             hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
             
-            Bids[bid_index].amount = 0;
             Asks[ask_index].amount = remainder;
+            if(remainder == 0){
+                delete Asks[ask_index];
+            }
+            delete Bids[bid_index];
             
-            cleanBidLedger();
             return true;
         }
     }
 
     function cleanAskLedger() public returns (bool) {
-        for(uint i = Asks.length - 1; i >= 0; i--) {
+        uint length = Asks.length-1;
+        for(uint i = 0 ; i<= length ; i++) {
             if (Asks[i].amount == 0) {
                 delete Asks[i];
             }
@@ -294,7 +345,7 @@ contract Exchange {
                 delete Bids[i];
             }
         }
-        return true;
+        //return true;
     }
 
     function getBidsCount() public view returns(uint) {

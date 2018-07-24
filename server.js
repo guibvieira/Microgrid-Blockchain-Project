@@ -1,7 +1,7 @@
 const { createServer } = require('http');
 const next = require('next');
-
-const app = next({dev: process.env.NODE_ENV !== 'production'});
+//production before 
+const app = next({dev: process.env.NODE_ENV !== 'development'});
 
 const routes = require('./routes');
 const handler = routes.getRequestHandler(app);

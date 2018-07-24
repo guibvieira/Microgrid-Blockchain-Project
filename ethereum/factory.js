@@ -9,7 +9,7 @@ const HouseholdFactory = require ('./build/HouseholdFactory.json');
 //replace this address with the deployed version of batteryfactory
 const instance = new web3.eth.Contract(
     JSON.parse(HouseholdFactory.interface),
-    '0xaC463BDBB0eE04ce22C4478E5F279b253f2631F8'
+    '0x8Ec7d1D31754C0748991ab17b29cC08Ef4bBb93A'
 );
 
 // export default instance;

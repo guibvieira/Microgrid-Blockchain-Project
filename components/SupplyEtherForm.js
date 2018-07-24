@@ -1,19 +1,22 @@
 import React, { Component } from 'react';
 import { Form, Input, Message, Button } from 'semantic-ui-react';
 import web3 from '../ethereum/web3';
-import factory from '../ethereum/factory';
 import { Router } from '../routes';
+import Household from '../ethereum/household';
 
-class HouseholdForm extends Component {
+class SupplyEtherForm extends Component {
 
     state = {
         errorMessage: '',
         loading: false,
-        batteryCapacity: 0
+        value: ''
     };
 
-    createHousehold = async (event) => {
+    supplyEther = async (event) => {
         event.preventDefault();
+
+        const household = Household(this.props.address);
+        console.log(this.props.address);
 
         this.setState( { errorMessage: '', loading: true});
 
@@ -22,12 +25,13 @@ class HouseholdForm extends Component {
         try {
             const accounts = await web3.eth.getAccounts();
             console.log('accounts', accounts);
-            await factory.methods.createHousehold('5000').send({
+            await household.methods.deposit().send({
                 from: accounts[0],
-                gas: '1000000'
+                gas: '1000000',
+                value: web3.utils.toWei(this.state.value, 'ether')
             });
 
-            Router.replaceRoute('/');
+            Router.replaceRoute(`/households/${this.props.address}`);
         } catch (err) {
             this.setState({errorMessage: err.message})
         }
@@ -36,32 +40,34 @@ class HouseholdForm extends Component {
     }
 
     onInputChanged(event) {
-        this.setState({ minimumContribution: event.target.value });
+        this.setState({ value: event.target.value });
         console.log(this.state);
     }
 
     render() {
         return (
 
-        <Form onSubmit={this.createHousehold} error={!!this.state.errorMessage}>
+        <Form onSubmit={this.supplyEther} error={!!this.state.errorMessage}>
          <Form.Field>
-           <label>Battery Capacity</label>
+           <label>Supply Ether to Contract</label>
            <Input
              type='number'
+             value={this.state.value}
              size='mini'
-             label='W/h'
+             label='Ether'
              labelPosition='right'
               onChange={ event => this.onInputChanged(event)}
            />
          </Form.Field>
 
          <Message error header='Oops!' content={this.state.errorMessage} />
-         <Button style={{ marginTop: '2px', marginBottom: '30px' }} loading={this.state.loading} primary>
-           Create!
+         <Button loading={this.state.loading} primary>
+           Supply!
          </Button>
        </Form>
         );
     }
+
 }
 
-export default HouseholdForm;
+export default SupplyEtherForm;

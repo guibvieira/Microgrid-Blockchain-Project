@@ -7,7 +7,7 @@ import factory from '../ethereum/factory';
 import web3 from '../ethereum/web3';
 
 
-class Household extends Component {
+class HouseholdIndex extends Component {
     static async getInitialProps() {
         const households = await factory.methods.getDeployedHouseholds().call();
 
@@ -39,16 +39,14 @@ class Household extends Component {
     render() {
         return(
             <Layout>
-                <h3>Open Households</h3>
+                <h3>Create Households</h3>
                 <HouseholdForm class="short"></HouseholdForm>
+                <h3>Open Households in Microgrid</h3>
                 {this.renderHouseholds()}
-                <Link route={'/test'}>
-                    <a>test</a>
-                </Link>
             </Layout>
             
         )
     }
 }
 
-export default Household;
+export default HouseholdIndex;
