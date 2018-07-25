@@ -14,8 +14,10 @@ class SubmitBidInput extends Component {
     };
 
     submitBid = async (event) => {
-        event.preventDefault();
+        
 
+        alert(`A bid was submitted for ${this.state.amount} W/h at ${this.state.price} p/kWh`);
+        event.preventDefault();
         const household = Household(this.props.address);
         console.log(this.props.address);
 
@@ -28,7 +30,7 @@ class SubmitBidInput extends Component {
             console.log('accounts', accounts);
             await household.methods.submitBid(this.state.price, this.state.amount).send({
                 from: accounts[0],
-                gas: '1000000'
+                gas: '1999999'
             });
 
             Router.replaceRoute(`/households/${this.props.address}/household/exchange`);
@@ -64,24 +66,22 @@ class SubmitBidInput extends Component {
              <label>Quantity (kWh)</label>
                 <Input
                 type='number'
-                value={this.state.quantity}
+                value={this.state.amount}
                 size='mini'
                 label='kWh'
                 labelPosition='right'
                 onChange={event =>
-                    this.setState({ quantity: event.target.value })}
+                    this.setState({ amount: event.target.value })}
              />
              </Form.Field>
              <Form.Field>
              <label>Total (£)</label>
                 <Input
                 type='number'
-                value={this.state.total}
+                value={this.state.price*this.state.amount/10000}
                 size='mini'
                 label='£'
-                labelPosition='right'                
-                onChange={event =>
-                this.setState({ total: event.target.value })}
+                labelPosition='right'       
              />
            </Form.Field>
 

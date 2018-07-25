@@ -2,7 +2,9 @@ import React, { Component } from 'react';
 import { Form, Input, Message, Button } from 'semantic-ui-react';
 import web3 from '../ethereum/web3';
 import factory from '../ethereum/factory';
+import exchange from '../ethereum/exchange';
 import { Router } from '../routes';
+import Household from '../ethereum/household';
 
 class HouseholdForm extends Component {
 
@@ -26,6 +28,20 @@ class HouseholdForm extends Component {
                 from: accounts[0],
                 gas: '1000000'
             });
+
+            let owner = await factory.methods.owner().call();
+            console.log(owner);
+            // console.log('im here');
+            // const households = await factory.methods.getDeployedHouseholds().call();
+            // console.log('household address created'. households);
+            // console.log('household address created'. households[households.length - 1]);
+            // const household = Household(households[households.length - 1])
+            
+    
+            // await household.methods.setExchange(exchange.options.address).send({
+            //     from: accounts[0],
+            //     gas: '100000'
+            // });
 
             Router.replaceRoute('/');
         } catch (err) {

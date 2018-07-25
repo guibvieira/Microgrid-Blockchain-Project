@@ -4,13 +4,7 @@ import web3 from '../ethereum/web3';
 import { Router } from '../routes';
 import Household from '../ethereum/household';
 
-class SubmitBidInput extends Component {
-
-    static async getInitialProps(props){
-        const { address } = props.query;
-
-        return { address };
-    }
+class SubmitSellInput extends Component {
     state = {
         errorMessage: '',
         loading: false,
@@ -32,32 +26,22 @@ class SubmitBidInput extends Component {
         try {
             const accounts = await web3.eth.getAccounts();
             console.log('accounts', accounts);
-            await household.methods.submitBid(this.state.price, this.state.amount).send({
+            await household.methods.submitAsk(this.state.price, this.state.amount).send({
                 from: accounts[0],
-                gas: '1000000'
+                gas: '1999999'
             });
 
             Router.replaceRoute(`/households/${this.props.address}/household/exchange`);
         } catch (err) {
-            this.setState({errorMessage: err.message})
+            this.setState({errorMessage: err.message});
         }
-        
         this.setState({loading: false});
     }
 
-    onInputChanged(event) {
-        this.setState({ value: event.target.value });
-        console.log(this.state);
-    }
-
     render() {
-        const options = [
-            { key: 1, text: 'Buy', value: 1},
-            { key: 2, text: 'Sell', value: 2}
-        ]
         return (
         
-          <Form onSubmit={this.supplyEther} error={!!this.state.errorMessage}>
+          <Form onSubmit={this.submitBid} error={!!this.state.errorMessage}>
            <Form.Field>
              <label>Price (p/kWh)</label>
              <Input
@@ -69,35 +53,38 @@ class SubmitBidInput extends Component {
              onChange={event =>
                 this.setState({ price: event.target.value })}
              />
+             </Form.Field>
+
+             <Form.Field>
              <label>Quantity (kWh)</label>
                 <Input
                 type='number'
-                value={this.state.quantity}
+                value={this.state.amount}
                 size='mini'
                 label='kWh'
                 labelPosition='right'
                 onChange={event =>
-                    this.setState({ quantity: event.target.value })}
+                    this.setState({ amount: event.target.value })}
              />
+             </Form.Field> 
+             <Form.Field>
              <label>Total (£)</label>
                 <Input
                 type='number'
-                value={this.state.total}
+                value={this.state.amount*this.state.price/10000}
                 size='mini'
                 label='£'
                 labelPosition='right'                
-                onChange={event =>
-                this.setState({ total: event.target.value })}
              />
            </Form.Field>
 
             <Message error header='Oops!' content={this.state.errorMessage} />
                 <Button loading={this.state.loading} primary>
-                    Place Bid!
+                    Place Ask!
                 </Button>
             </Form>
         );
     }
 }
 
-export default SubmitBidInput;
+export default SubmitSellInput;

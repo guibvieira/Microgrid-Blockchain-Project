@@ -5,12 +5,14 @@ import { Card, Grid, Button} from 'semantic-ui-react';
 import { Link } from '../../routes';
 import HouseholdContract from '../../ethereum/household';
 import web3 from '../../ethereum/web3';
+import SetExchange from '../../components/SetExchange';
 
 class HouseholdPage extends Component {
     static async getInitialProps(props) {
         const household = HouseholdContract(props.query.address);
         const summary = await household.methods.getSmartMeterDetails().call();
         const balance = await web3.eth.getBalance(props.query.address);
+        const exchangeAddress = await household.methods.exchangeAddress().call();
         
         return { 
             owner: summary[0],
@@ -20,7 +22,8 @@ class HouseholdPage extends Component {
             batteryCapacity: summary[3],
             amountOfCharge: summary[4],
             excessEnergy: summary[5],
-            balance: balance
+            balance: balance,
+            exchangeAddress: exchangeAddress
          }
     }
 
@@ -32,7 +35,8 @@ class HouseholdPage extends Component {
             batteryCapacity,
             amountOfCharge,
             excessEnergy,
-            balance
+            balance,
+            exchangeAddress
           } = this.props;
       
           const items = [
@@ -85,7 +89,14 @@ class HouseholdPage extends Component {
               meta: 'Household Contract Balance (ether)',
               description:
                 'The balance is how much ether a household contract holds.'
-            }
+            },
+            {
+                header: exchangeAddress,
+                meta: 'Exchange Address',
+                description:
+                  'The address of the exchange in which this contract is connected to.',
+                  style: { overflowWrap: 'break-word' }
+              }
             ];
             return <Card.Group items={items} />;
     }
@@ -100,9 +111,15 @@ class HouseholdPage extends Component {
                 <Grid style={{ marginTop: '10px', marginBottom: '10px' }}>
                     <Grid.Row>
                     <Grid.Column width={10}>{this.renderCards()}</Grid.Column>
+                    <Grid.Column width={6}>
+                    <SupplyEtherForm address={this.props.address} style={{padding:'10', marginBottom: '100px'}}/>
+                    <p></p>
+                    <p></p>
+                    <SetExchange address={this.props.address} style={{marginTop: '10px'}}/>
+                    </Grid.Column>
                     </Grid.Row>
                 </Grid>
-                <SupplyEtherForm address={this.props.address} style={{padding:'10'}}/>
+                
             </Layout>
         );
     }
