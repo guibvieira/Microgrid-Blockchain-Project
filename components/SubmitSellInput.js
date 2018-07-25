@@ -5,6 +5,12 @@ import { Router } from '../routes';
 import Household from '../ethereum/household';
 
 class SubmitBidInput extends Component {
+
+    static async getInitialProps(props){
+        const { address } = props.query;
+
+        return { address };
+    }
     state = {
         errorMessage: '',
         loading: false,
@@ -33,8 +39,9 @@ class SubmitBidInput extends Component {
 
             Router.replaceRoute(`/households/${this.props.address}/household/exchange`);
         } catch (err) {
-            this.setState({errorMessage: err.message});
+            this.setState({errorMessage: err.message})
         }
+        
         this.setState({loading: false});
     }
 
@@ -44,9 +51,13 @@ class SubmitBidInput extends Component {
     }
 
     render() {
+        const options = [
+            { key: 1, text: 'Buy', value: 1},
+            { key: 2, text: 'Sell', value: 2}
+        ]
         return (
         
-          <Form onSubmit={this.submitBid} error={!!this.state.errorMessage}>
+          <Form onSubmit={this.supplyEther} error={!!this.state.errorMessage}>
            <Form.Field>
              <label>Price (p/kWh)</label>
              <Input
@@ -58,9 +69,6 @@ class SubmitBidInput extends Component {
              onChange={event =>
                 this.setState({ price: event.target.value })}
              />
-             </Form.Field>
-
-             <Form.Field>
              <label>Quantity (kWh)</label>
                 <Input
                 type='number'
@@ -71,8 +79,6 @@ class SubmitBidInput extends Component {
                 onChange={event =>
                     this.setState({ quantity: event.target.value })}
              />
-             </Form.Field>
-             <Form.Field>
              <label>Total (£)</label>
                 <Input
                 type='number'

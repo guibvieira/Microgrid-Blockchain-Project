@@ -1,20 +1,46 @@
 import React, { Component } from 'react';
 import Layout from '../../../components/Layout';
-// import HouseholdContract from '../../..//ethereum/household';
+import HouseholdContract from '../../..//ethereum/household';
 import web3 from '../../..//ethereum/web3';
 import Exchange from '../../../ethereum/exchange';
 import { Dropdown, Menu } from 'semantic-ui-react';
 import SubmitBidInput from '../../../components/SubmitBidInput';
 
 class ExchangePage extends Component {
-    static async getInitialProps() {
+    state = {
+        errorMessage: '',
+        loading: false,
+        selectedOption: ''
+    };
+
+    static async getInitialProps(props) {
         const exchange = Exchange;
+        const exchangeAddress = exchange.options.address;
+        const household = HouseholdContract(props.query.address);
 
         console.log(exchange);
+        console.log(props.query.address);
         return { 
-            exchange
+            address: props.query.address,
+            exchange: exchange,
+            exchangeAddress: exchangeAddress,
+            household: household
         };
     }
+
+    handleChange1 = (selectedOption) => {
+        this.setState({selectedOption});
+    };
+    
+    // buySellSelection () {
+    //     if(this.state.selectedOption == 1){
+    //         return <SubmitBidInput />
+    //     }
+    //     if(this.state.selectedOption == 0){
+    //         return <SubmitSellInput />
+    //     }
+    // }
+
     
     render() {
         const options = [
@@ -26,7 +52,7 @@ class ExchangePage extends Component {
             <Menu compact style={{marginBottom: '10px'}} >
                 <Dropdown text='Buy/Sell' options={options} simple item />
             </Menu>
-            <SubmitBidInput />
+            <SubmitBidInput  address={this.props.address} />
         </Layout>
         );
         
@@ -35,9 +61,3 @@ class ExchangePage extends Component {
 
 export default ExchangePage;
 
-{/* <Layout>
-            <Dropdown text='Buy' floating labeled button className='icon'>
-                <Dropdown.Menu className='Sell'>
-                </Dropdown.Menu>
-            </Dropdown>
-        </Layout> */}

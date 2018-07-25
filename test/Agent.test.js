@@ -1,26 +1,34 @@
-//import web3 from '../ethereum/web3';
-//const web3 = require('../ethereum/web3');
-// const factory = require('../ethereum/factory');
-// const exchange = require('../ethereum/exchange');
+//Using ganache
+const assert = require('assert');
 const ganache = require('ganache-cli');
 // const Web3 = require('web3');
 // const web3 = new Web3(ganache.provider());
 const web3 = require('../ethereum/web3.js');
 //probably same as web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
 const Agent = require('../models/agent.js');
-const assert = require('assert');
+
+//compiled contracts
+const compiledHousehold = require('../ethereum/build/Household.json');
+const factory = require('../ethereum/factory');
 const exchange = require('../ethereum/exchange');
 
-let agent = new Agent(5000);
+let household;
+let agentAccount;
+let agent;
+let agentBalance;
 
 beforeEach(async() => {
     accounts = await web3.eth.getAccounts();
-    await agent.getAccount();
-    
-    await agent.getAgentBalance();
-    //console.log(agent.balance);
+    console.log(accounts[0]);
+    //create agent instance
+    agent = new Agent(5000);
 
-    await agent.deployContract(5000);
+    agentAccount = await agent.getAccount();
+    console.log(agent.ethereumAddress);
+    agentBalance = await agent.getAgentBalance();
+    console.log(agent.balance);
+
+    household = await agent.deployContract(5000);
 
 });
 
@@ -107,8 +115,8 @@ describe('Agents', () => {
     it('can set a summary of smartMeter details of the contract', async () =>{
         await agent.setSmartMeterDetails(1200, 1400);
 
-        let demand = await agent.newHousehold.methods.demand().call();
-        let supply = await agent.newHousehold.methods.supply().call();
+        let demand = await agent.newHousehold.methods.currentDemand().call();
+        let supply = await agent.newHousehold.methods.currentSupply().call();
         let excess = await agent.newHousehold.methods.excessEnergy().call();
         assert(demand, 1400);
         assert(supply, 1200);
