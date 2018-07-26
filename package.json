@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "node ./test/testRunner.js",
-    "dev": "next dev"
+    "dev": "next dev",
+    "deploy": "node ./ethereum/deploy.js",
+    "compile": "node ./ethereum/compile.js"
   },
   "author": "",
   "license": "ISC",
