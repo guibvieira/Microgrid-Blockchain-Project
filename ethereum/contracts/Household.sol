@@ -2,7 +2,6 @@ pragma solidity ^0.4.17;
 
 contract HouseholdFactory{
     address[] public deployedHouseholds;
-    mapping (address => uint) public balances;
     address public owner;
     
     constructor() public{
@@ -11,29 +10,18 @@ contract HouseholdFactory{
     
     function createHousehold(uint capacity ) public{
         address newHousehold = new Household(capacity, msg.sender, owner);
-        // alternatively (new Household).value(1000000)(capacity, msg.sender, owner)
-        // to send ether with creation
-        //balances[newHousehold] = 1;
         deployedHouseholds.push(newHousehold);
     }
     
     function getDeployedHouseholds() public view returns (address[]) {
         return deployedHouseholds;
     }
-
-    function addBalance(address target,uint price) public {
-        balances[target] += price;
-    }
-    
-    function subBalance(address target,uint price) public {
-        balances[target] -= price;
-    }
 }
 
 contract Household{
     
-    uint public demand;
-    uint public supply;
+    uint public currentDemand;
+    uint public currentSupply;
     uint public batteryCapacity;
     uint public amountOfCharge;
     uint public excessEnergy;
@@ -42,8 +30,8 @@ contract Household{
     
     struct Bid{
         address origin;
-        uint price;
-        uint amount;
+        uint8 price;
+        uint8 amount;
         uint date;
     }
     
@@ -51,7 +39,7 @@ contract Household{
     Bid[] public Asks;
     address public owner;
     address public contractAddress;
-    address public factoryAddress;
+    address public factory;
     address public exchangeAddress;
     uint public balanceContract;
     Exchange ex;
@@ -62,7 +50,7 @@ contract Household{
         owner = creator;
         batteryCapacity = capacity;
         amountOfCharge = capacity;
-        factoryAddress = watch_address;
+        factory = watch_address;
         contractAddress = address(this);
     }
     
@@ -72,12 +60,24 @@ contract Household{
     function () public payable {}
 
     function setSmartMeterDetails(uint _demand, uint _supply, uint _excessEnergy) public {
-        demand = _demand;
-        supply = _supply;
+        currentDemand = _demand;
+        currentSupply = _supply;
         excessEnergy = _excessEnergy;
     }
+
+    function getSmartMeterDetails() public view returns(address, uint, uint, uint, uint, uint){
+        return (
+            owner, 
+            currentDemand,
+            currentSupply,
+            batteryCapacity,
+            amountOfCharge,
+            excessEnergy
+        );
+    }
+
     
-    function getBids(uint index) public view returns(address, uint, uint, uint){
+    function getBids(uint index) public view returns(address, uint8, uint8, uint){
         return (Bids[index].origin,
                 Bids[index].price,
                 Bids[index].amount,
@@ -85,7 +85,7 @@ contract Household{
         );
     }
 
-    function getAsks(uint index) public view returns(address, uint, uint, uint){
+    function getAsks(uint index) public view returns(address, uint8, uint8, uint){
         return (Asks[index].origin,
                 Asks[index].price,
                 Asks[index].amount,
@@ -105,49 +105,53 @@ contract Household{
         amountOfCharge -= amount;
     }
     
-    function submitBid(uint price, uint amount) public restricted {
+    function submitBid(uint8 price, uint8 amount, uint timestamp) public restricted returns (bool){
         Bid memory newBid = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: now
+            date: timestamp
         });
         
         Bids.push(newBid);
         ex = Exchange(exchangeAddress);
-        ex.placeBid(price, amount);
+        return ex.placeBid(price, amount, timestamp);
+        
     }
     
-    function submitAsk(uint price, uint amount) public restricted {
+    function submitAsk(uint8 price, uint8 amount, uint timestamp) public restricted returns(bool) {
         Bid memory newAsk = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: now
+            date: timestamp
         });
         
         Asks.push(newAsk);
         ex = Exchange(exchangeAddress);
-        ex.placeAsk(price, amount);
+        return ex.placeAsk(price, amount,timestamp);
     }
 
-    function buyEnergy(uint _amount, address _recipient, uint _price ) external payable returns(bool successful){
-                
+    function buyEnergy(uint _amount, address _recipient, uint _price ) public payable returns(bool successful){
+
         amountOfCharge += _amount;
 
         hh = Household(_recipient);
         hh.discharge(_amount);
-
-        uint finalPrice = (_amount/1000)*_price;
-
-        _recipient.call.value(finalPrice).gas(20317)();
-
-        // HouseholdFactory factory = HouseholdFactory(factoryAddress);
         
-        // factory.subBalance(address(this), price);
-        // factory.addBalance(recipient, price);
+        _recipient.transfer( (_amount/1000)*_price);
         
         return true;
+    }
+
+    function deleteBid(uint bid_index) public {
+        ex = Exchange(exchangeAddress);
+        ex.removeBid(bid_index);
+    }
+
+    function deleteAsk(uint ask_index) public {
+        ex = Exchange(exchangeAddress);
+        ex.removeAsk(ask_index);
     }
 
     modifier restricted() {
@@ -161,42 +165,43 @@ contract Exchange {
 
     struct Bid {
         address owner;
-        uint price;
-        uint amount;
+        uint8 price;
+        uint8 amount;
         uint date;
     }
 
     struct Ask {
         address owner;
-        uint price;
-        uint amount;
+        uint8 price;
+        uint8 amount;
         uint date;
     }
 
     Bid[] public Bids;
     Ask[] public Asks;
     Household hh;
+
+    constructor() public payable{}
     
     function deposit() public payable {
     }
 
     function () public payable{}
 
-    function getBid(uint index) public returns(address, uint, uint, uint){
+    function getBid(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
     }
 
-    function getAsk(uint index) public  returns(address, uint, uint, uint){
+    function getAsk(uint index) public view returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
-    
 
-    function placeBid(uint _price, uint _amount) external returns (bool) {
+    function placeBid(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
         Bid memory b;
         b.owner = msg.sender;
         b.price = _price;
         b.amount = _amount;
-        b.date = now;
+        b.date = timestamp;
 
         for(uint i = 0; i < Bids.length; i++) {
             if(Bids[i].price > _price) {
@@ -226,12 +231,12 @@ contract Exchange {
         return true;
     }
 
-    function placeAsk(uint _price, uint _amount) external returns (bool) {
+    function placeAsk(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
         Ask memory a;
         a.owner = msg.sender;
         a.price = _price;
         a.amount = _amount;
-        a.date = now;
+        a.date = timestamp;
 
 
         for (uint i = 0; i < Asks.length; i ++) {
@@ -260,23 +265,26 @@ contract Exchange {
     }
 
     function matchBid(uint bid_index, uint ask_index) public returns (bool) {
-        if (Bids[bid_index].price < Asks[ask_index].price) {
+        if (Bids[bid_index].amount == 0 || Asks[ask_index].amount == 0 || Bids[bid_index].price < Asks[ask_index].price) {
             return true;
         }
         
         hh = Household(Bids[bid_index].owner);
-        //uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
+        
         uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) >= 0){
-            uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
-            uint calcAmount = Bids[bid_index].amount - remainder;
+            uint8 remainder = Bids[bid_index].amount - Asks[ask_index].amount;
+            uint8 calcAmount = Bids[bid_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
             
             Bids[bid_index].amount = remainder;
-            Asks[ask_index].amount = 0;
+            if(remainder==0){
+                delete Bids[bid_index];
+            }
+            delete Asks[ask_index];
             
-            cleanAskLedger();
             return true;
         }
         
@@ -286,30 +294,32 @@ contract Exchange {
             
             hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
             
-            Bids[bid_index].amount = 0;
-            Asks[ask_index].amount = remainder;
+           Asks[ask_index].amount = remainder;
+            if(remainder == 0){
+                delete Asks[ask_index];
+            }
+            delete Bids[bid_index];
             
-            cleanBidLedger();
             return true;
         }
     }
+    
+    function removeBid(uint index)  public {
+        if (index >= Bids.length) return;
 
-    function cleanAskLedger() public returns (bool) {
-        for(uint i = Asks.length - 1; i >= 0; i--) {
-            if (Asks[i].amount == 0) {
-                delete Asks[i];
-            }
+        for (uint i = index; i<Bids.length-1; i++){
+            Bids[i] = Bids[i+1];
         }
-        return true;
+        Bids.length--;
     }
+    
+    function removeAsk(uint index)  public {
+        if (index >= Asks.length) return;
 
-    function cleanBidLedger() public returns (bool) {
-        for(uint i = Bids.length -1; i >= 0; i--) {
-            if(Bids[i].amount > 0) {
-                delete Bids[i];
-            }
+        for (uint i = index; i<Asks.length-1; i++){
+            Asks[i] = Asks[i+1];
         }
-        return true;
+        Asks.length--;
     }
 
     function getBidsCount() public view returns(uint) {

@@ -1,4 +1,4 @@
-var testFiles=["./test/Agent.test.js", "./test/Exchange.test.js"];
+var testFiles=["./test/Exchange.test.js"];
 
 
 var Mocha = require('mocha');

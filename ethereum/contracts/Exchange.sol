@@ -1,3 +1,4 @@
+
 pragma solidity ^0.4.17;
 
 contract HouseholdFactory{
@@ -141,13 +142,7 @@ contract Household{
         hh.discharge(_amount);
 
 
-        uint finalPrice = (_amount/1000)*_price;
-        _recipient.transfer(finalPrice);
-        //_recipient.call.value(finalPrice).gas(100000)();
-        // HouseholdFactory factory = HouseholdFactory(parent);
-        
-        // factory.subBalance(address(this), price);
-        // factory.addBalance(recipient, price);
+        _recipient.transfer( (_amount/1000)*_price);
         
         return true;
     }
@@ -206,14 +201,6 @@ contract Exchange {
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
 
-    function removeBid(uint _bid_index) public returns (bool){
-        delete Bids[_bid_index];
-    }
-
-    function removeAsk(uint _ask_index) public returns (bool){
-        delete Asks[_ask_index];
-    }
-    
 
     function placeBid(uint _price, uint _amount) public returns (bool) {
         Bid memory b;
@@ -282,12 +269,12 @@ contract Exchange {
         }
         return true;
     }
-
+    
     function matchBid(uint bid_index, uint ask_index) public returns (bool) {
-        if (Bids[bid_index].price < Asks[ask_index].price) {
+        if (Bids.length == 0 || Asks.length == 0 || Bids[bid_index].price < Asks[ask_index].price) {
             return true;
         }
-        
+
         hh = Household(Bids[bid_index].owner);
         
         uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
@@ -296,50 +283,49 @@ contract Exchange {
             uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
             uint calcAmount = Bids[bid_index].amount - remainder;
             
-            transactionConfirmation = hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
-            
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
+
             Bids[bid_index].amount = remainder;
             if(remainder==0){
-                delete Bids[bid_index];
+                removeBid(bid_index);
             }
-            delete Asks[ask_index];
+            removeAsk(ask_index);
             
-            return true;
+            return (matchBid(Bids.length-1,Asks.length-1 ));
         }
         
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) < 0){
             remainder = Asks[ask_index].amount - Bids[bid_index].amount;
             calcAmount = Asks[ask_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
-            
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
+
             Asks[ask_index].amount = remainder;
             if(remainder == 0){
-                delete Asks[ask_index];
+                removeAsk(ask_index);
             }
-            delete Bids[bid_index];
+            removeBid(bid_index);
             
-            return true;
+            return (matchBid(Bids.length-1,Asks.length-1 )); 
         }
     }
 
-    function cleanAskLedger() public returns (bool) {
-        uint length = Asks.length-1;
-        for(uint i = 0 ; i<= length ; i++) {
-            if (Asks[i].amount == 0) {
-                delete Asks[i];
-            }
+    function removeBid(uint index) public {
+        if (index >= Bids.length) return;
+        
+        for (uint i = index; i<Bids.length-1; i++){
+            Bids[i] = Bids[i+1];
         }
-        return true;
+        Bids.length--;
     }
 
-    function cleanBidLedger() public returns (bool) {
-        for(uint i = Bids.length -1; i >= 0; i--) {
-            if(Bids[i].amount > 0) {
-                delete Bids[i];
-            }
+    function removeAsk(uint index) public {
+        if (index >= Asks.length) return;
+        
+        for (uint i = index; i<Asks.length-1; i++){
+            Asks[i] = Asks[i+1];
         }
-        //return true;
+        Asks.length--;
     }
 
     function getBidsCount() public view returns(uint) {

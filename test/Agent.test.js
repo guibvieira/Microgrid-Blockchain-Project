@@ -19,14 +19,14 @@ let agentBalance;
 
 beforeEach(async() => {
     accounts = await web3.eth.getAccounts();
-    console.log(accounts[0]);
+    //console.log(accounts[0]);
     //create agent instance
     agent = new Agent(5000);
 
     agentAccount = await agent.getAccount();
-    console.log(agent.ethereumAddress);
+    //console.log(agent.ethereumAddress);
     agentBalance = await agent.getAgentBalance();
-    console.log(agent.balance);
+    //console.log(agent.balance);
 
     household = await agent.deployContract(5000);
 
