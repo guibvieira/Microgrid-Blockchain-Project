@@ -3,7 +3,6 @@ pragma solidity ^0.4.17;
 
 contract HouseholdFactory{
     address[] public deployedHouseholds;
-    mapping (address => uint) public balances;
     address public owner;
     
     constructor() public{
@@ -12,22 +11,11 @@ contract HouseholdFactory{
     
     function createHousehold(uint capacity ) public{
         address newHousehold = new Household(capacity, msg.sender, owner);
-        // alternatively (new Household).value(1000000)(capacity, msg.sender, owner)
-        // to send ether with creation
         deployedHouseholds.push(newHousehold);
-        balances[newHousehold] = 0;
     }
     
     function getDeployedHouseholds() public view returns (address[]) {
         return deployedHouseholds;
-    }
-
-    function addBalance(address target,uint price) public {
-        balances[target] += price;
-    }
-    
-    function subBalance(address target,uint price) public {
-        balances[target] -= price;
     }
 }
 
@@ -76,6 +64,17 @@ contract Household{
         currentDemand = _demand;
         currentSupply = _supply;
         excessEnergy = _excessEnergy;
+    }
+
+    function getSmartMeterDetails() public view returns(address, uint, uint, uint, uint, uint){
+        return(
+            owner,
+            currentDemand,
+            currentSupply,
+            batteryCapacity,
+            amountOfCharge,
+            excessEnergy
+        );
     }
 
     
@@ -183,8 +182,6 @@ contract Exchange {
     Bid[] public Bids;
     Ask[] public Asks;
     Household hh;
-    
-    bool public transactionConfirmation;
 
     constructor() public payable{}
     
@@ -283,7 +280,7 @@ contract Exchange {
             uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
             uint calcAmount = Bids[bid_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
 
             Bids[bid_index].amount = remainder;
             if(remainder==0){
@@ -291,14 +288,14 @@ contract Exchange {
             }
             removeAsk(ask_index);
             
-            return (matchBid(Bids.length-1,Asks.length-1 ));
+            return (matchBid(Bids.length-1,Asks.length-1));
         }
         
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) < 0){
             remainder = Asks[ask_index].amount - Bids[bid_index].amount;
             calcAmount = Asks[ask_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
 
             Asks[ask_index].amount = remainder;
             if(remainder == 0){
@@ -306,7 +303,7 @@ contract Exchange {
             }
             removeBid(bid_index);
             
-            return (matchBid(Bids.length-1,Asks.length-1 )); 
+            return (matchBid(Bids.length-1,Asks.length-1)); 
         }
     }
 
