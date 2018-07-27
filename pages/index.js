@@ -40,7 +40,7 @@ class HouseholdIndex extends Component {
         return(
             <Layout>
                 <h3>Create Households</h3>
-                <HouseholdForm class="short"></HouseholdForm>
+                <HouseholdForm households={this.props.households} class="short"></HouseholdForm>
                 <h3>Open Households in Microgrid</h3>
                 {this.renderHouseholds()}
             </Layout>

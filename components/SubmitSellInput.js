@@ -26,7 +26,8 @@ class SubmitSellInput extends Component {
         try {
             const accounts = await web3.eth.getAccounts();
             console.log('accounts', accounts);
-            await household.methods.submitAsk(this.state.price, this.state.amount).send({
+            let date = new Date().getTime();
+            await household.methods.submitAsk(this.state.price, this.state.amount, date).send({
                 from: accounts[0],
                 gas: '1999999'
             });

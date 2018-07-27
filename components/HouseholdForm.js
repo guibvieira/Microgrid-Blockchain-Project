@@ -29,19 +29,18 @@ class HouseholdForm extends Component {
                 gas: '1000000'
             });
 
-            let owner = await factory.methods.owner().call();
-            console.log(owner);
+            let households = this.props.households;
             // console.log('im here');
             // const households = await factory.methods.getDeployedHouseholds().call();
-            // console.log('household address created'. households);
-            // console.log('household address created'. households[households.length - 1]);
-            // const household = Household(households[households.length - 1])
+            console.log('household address created'. households);
+            console.log('household address created'. households[households.length - 1]);
+            const household = Household(households[households.length - 1])
             
     
-            // await household.methods.setExchange(exchange.options.address).send({
-            //     from: accounts[0],
-            //     gas: '100000'
-            // });
+            await household.methods.setExchange(exchange.options.address).send({
+                from: accounts[0],
+                gas: '100000'
+            });
 
             Router.replaceRoute('/');
         } catch (err) {
