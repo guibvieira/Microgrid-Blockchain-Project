@@ -107,31 +107,31 @@ contract Household{
         amountOfCharge -= amount;
     }
     
-    function submitBid(uint price, uint amount) public restricted returns (bool){
+    function submitBid(uint price, uint amount, uint timestamp) public restricted returns (bool){
         Bid memory newBid = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: now
+            date: timestamp
         });
         
         Bids.push(newBid);
         ex = Exchange(exchangeAddress);
-        return ex.placeBid(price, amount);
+        return ex.placeBid(price, amount, timestamp);
         
     }
     
-    function submitAsk(uint price, uint amount) public restricted returns(bool) {
+    function submitAsk(uint price, uint amount, uint timestamp) public restricted returns(bool) {
         Bid memory newAsk = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: now
+            date: timestamp
         });
         
         Asks.push(newAsk);
         ex = Exchange(exchangeAddress);
-        return ex.placeAsk(price, amount);
+        return ex.placeAsk(price, amount, timestamp);
     }
 
     function buyEnergy(uint _amount, address _recipient, uint _price ) public payable returns(bool successful){
@@ -202,12 +202,12 @@ contract Exchange {
     }
 
 
-    function placeBid(uint _price, uint _amount) public returns (bool) {
+    function placeBid(uint _price, uint _amount, uint timestamp) public returns (bool) {
         Bid memory b;
         b.owner = msg.sender;
         b.price = _price;
         b.amount = _amount;
-        b.date = now;
+        b.date = timestamp;
 
         for(uint i = 0; i < Bids.length; i++) {
             if(Bids[i].price > _price) {
@@ -237,12 +237,12 @@ contract Exchange {
         return true;
     }
 
-    function placeAsk(uint _price, uint _amount) public returns (bool) {
+    function placeAsk(uint _price, uint _amount, uint timestamp) public returns (bool) {
         Ask memory a;
         a.owner = msg.sender;
         a.price = _price;
         a.amount = _amount;
-        a.date = now;
+        a.date = timestamp;
 
 
         for (uint i = 0; i < Asks.length; i ++) {
