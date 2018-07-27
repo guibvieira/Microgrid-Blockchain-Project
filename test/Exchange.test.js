@@ -16,6 +16,7 @@ let factory;
 let householdAddress;
 let household;
 let exchange;
+let date;
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
@@ -212,12 +213,16 @@ describe('Households', () => {
             value:  web3.utils.toWei( '1', 'ether')
         });
 
-        await household1.methods.submitBid(10, 1000).send({
+        date = (new Date()).getTime();
+
+        await household1.methods.submitBid(10, 1000, date).send({
             from: accounts[0],
             gas: '1000000'
         });
 
-        await household2.methods.submitAsk(11, 1000).send({
+        date = (new Date()).getTime();
+
+        await household2.methods.submitAsk(11, 1000, date).send({
            from: accounts[1],
            gas: '1000000'
         });
@@ -243,11 +248,13 @@ describe('Households', () => {
             gas: '1000000'
         });
         //place bid and ask
-        await household1.methods.submitBid(10, 1000).send({
+        date = (new Date()).getTime();
+        await household1.methods.submitBid(10, 1000, date).send({
             from: accounts[0],
             gas: '1000000'
         });
-        await household2.methods.submitAsk(11, 1000).send({
+        date = (new Date()).getTime();
+        await household2.methods.submitAsk(11, 1000, date).send({
            from: accounts[1],
            gas: '1000000'
         });
@@ -304,16 +311,19 @@ describe('Households', () => {
         console.log('pre balance of contract 2', pre_balance2);
 
         try{
+        date = (new Date()).getTime();
         //send a Bid and an Ask that will match to provoke a transaction between both contracts(Households)
-        await household3.methods.submitBid(10, 1000).send({
+        await household3.methods.submitBid(10, 1000, date).send({
             from: accounts[2],
             gas: '1999999'
         });
-        await household1.methods.submitBid(10, 1000).send({
+        date = (new Date()).getTime();
+        await household1.methods.submitBid(10, 1000, date).send({
             from: accounts[0],
             gas: '1999999'
         });
-        await household2.methods.submitAsk(10, 2000).send({
+        date = (new Date()).getTime();
+        await household2.methods.submitAsk(10, 2000, date).send({
             from: accounts[1],
             gas: '1999999'
         });

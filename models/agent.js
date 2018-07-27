@@ -64,15 +64,15 @@ class Agent{
         this.balance = balance;
     }
 
-    async placeBuy(price, amount){
-        await this.newHousehold.methods.submitBid(price, amount).send({
+    async placeBuy(price, amount, date){
+        await this.newHousehold.methods.submitBid(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
     }
 
-    async placeAsk(price, amount){
-        await this.newHousehold.methods.submitAsk(price, amount).send({
+    async placeAsk(price, amount, date){
+        await this.newHousehold.methods.submitAsk(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });

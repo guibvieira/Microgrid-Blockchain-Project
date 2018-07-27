@@ -16,6 +16,7 @@ let household;
 let agentAccount;
 let agent;
 let agentBalance;
+let date;
 
 beforeEach(async() => {
     accounts = await web3.eth.getAccounts();
@@ -59,8 +60,9 @@ describe('Agents', () => {
     });
 
     it('can place a Buy and a Sell', async() =>{
-        await agent.placeBuy(10,1000);
-        await agent.placeAsk(11,1000);
+        date = (new Date()).getTime();
+        await agent.placeBuy(10,1000, date);
+        await agent.placeAsk(11,1000, date);
 
         let bid = await exchange.methods.getBid(0).call();
         let ask = await exchange.methods.getAsk(0).call();
@@ -85,12 +87,13 @@ describe('Agents', () => {
     });
 
     it('can acquire the total amount of demand and supply off the exchange', async()=>{
-        await agent.placeBuy(10,1000);
-        await agent.placeBuy(9,1000);
-        await agent.placeBuy(8,1000);
-        await agent.placeAsk(11,1000);
-        await agent.placeAsk(12,1000);
-        await agent.placeAsk(13,1000);
+        date = (new Date()).getTime();
+        await agent.placeBuy(10,1000, date);
+        await agent.placeBuy(9,1000,date);
+        await agent.placeBuy(8,1000,date);
+        await agent.placeAsk(11,1000, date);
+        await agent.placeAsk(12,1000, date);
+        await agent.placeAsk(13,1000, date);
 
         let bidsCount = await exchange.methods.getBidsCount().call();
         let asksCount = await exchange.methods.getAsksCount().call();
