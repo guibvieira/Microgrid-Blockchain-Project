@@ -12,22 +12,36 @@
 // const compiledExchange = require('../ethereum/build/Exchange.json');
 
 //Using ganache
-const web3 = require('../ethereum/web3-ganache.js'); //ganache instance
-const compiledFactory = require('../ethereum/build/HouseholdFactory.json');
+//const web3 = require('../test/Agent.test.js'); //ganache instance
+const ganache = require('ganache-cli');
+// const Web3 = require('web3');
+// const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
+const web3 = require('../ethereum/web3-ganache.js');
+
+//compiled contracts
 const compiledHousehold = require('../ethereum/build/Household.json');
-const compiledExchange = require('../ethereum/build/Exchange.json');
-const exchange = require('../ethereum/exchange.js');
-const factory = require('../ethereum/factory.js');
+const factory = require('../ethereum/factory');
+const exchange = require('../ethereum/exchange');
+
 
 class Agent{
     constructor(batteryCapacity){
         this.getDate();
         this.getCurrentTime();
         this.balance =0;
-        // this.getAccount(0);
-        // this.getAgentBalance();
-        //this.deploymentSuccess = this.deployContract(batteryCapacity);
+
+        this.batteryCapacity = batteryCapacity; 
+        this.excessEnergy = 0;
+        this.currentDemand = 0;
+        this.currentSupply = 0; 
+        this.historicalDemand = new Array();
+        this.historicalSupply = new Array();
+        this.householdID = 0;
+        this.baseElectValue = 0;
+              
     }
+
+    loadSmartMeterData(fileName){   }
 
     async setSmartMeterDetails(demand, supply){
         if(supply>demand){
@@ -41,7 +55,7 @@ class Agent{
 
     async getAccount() {
         let accounts = await web3.eth.getAccounts();
-        this.ethereumAddress = accounts[1];
+        this.ethereumAddress = accounts[0];
         this.accounts = accounts;
     }
 
@@ -50,27 +64,26 @@ class Agent{
         this.balance = balance;
     }
 
-    async placeBuy(price, amount){
-        await this.newHousehold.methods.submitBid(price, amount).send({
+    async placeBuy(price, amount, date){
+        await this.newHousehold.methods.submitBid(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
     }
 
-    async placeAsk(price, amount){
-        await this.newHousehold.methods.submitAsk(price, amount).send({
+    async placeAsk(price, amount, date){
+        await this.newHousehold.methods.submitAsk(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
     }
 
-    async deployContract (batteryCapacity ) {
+    async deployContract (batteryCapacity) {
 
-        await factory.methods.createHousehold(batteryCapacity).send({
+        await factory.methods.createHousehold(this.batteryCapacity).send({
             from: this.ethereumAddress,
-            gas:'1999999'
+            gas: '1000000'
         });
-
         let households = await factory.methods.getDeployedHouseholds().call(); 
 
         let newHousehold = await new web3.eth.Contract(
@@ -92,7 +105,7 @@ class Agent{
         //     value: web3.utils.toWei( '1', 'ether')
         // });
 
-        return true;
+        return newHousehold;
     }
 
     async chargeContract(amount){

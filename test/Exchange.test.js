@@ -1,9 +1,10 @@
 const assert = require('assert');
-//const ganache = require('ganache-cli');
-// const Web3 = require('web3');
-// const web3 = new Web3(ganache.provider());
+const ganache = require('ganache-cli');
+const Web3 = require('web3');
+//const web3 = new Web3(ganache.provider());
+const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
 //const web3 = require('../ethereum/web3-ganache.js');
-const web3 = require('../ethereum/web3.js');
+
 
 const compiledFactory = require('../ethereum/build/HouseholdFactory.json');
 const compiledCampaign = require('../ethereum/build/Household.json');
@@ -15,6 +16,7 @@ let factory;
 let householdAddress;
 let household;
 let exchange;
+let date;
 
 beforeEach(async () => {
     accounts = await web3.eth.getAccounts();
@@ -35,6 +37,10 @@ beforeEach(async () => {
         from: accounts[1],
         gas: '1000000'
     });
+    await factory.methods.createHousehold('3000').send({
+        from: accounts[2],
+        gas: '1000000'
+    });
 
     households = await factory.methods.getDeployedHouseholds().call(); //the square brackets is a deconstructing array thing, which extract the first element of the array to assign it to campaignAddress
     household1 = await new web3.eth.Contract(
@@ -44,6 +50,10 @@ beforeEach(async () => {
     household2 = await new web3.eth.Contract(
         JSON.parse(compiledCampaign.interface),
         households[1]
+    );
+    household3 = await new web3.eth.Contract(
+        JSON.parse(compiledCampaign.interface),
+        households[2]
     );
     //Deposit some money so they can operate
     await household1.methods.deposit().send({
@@ -56,14 +66,10 @@ beforeEach(async () => {
         gas: '1000000',
         value: web3.utils.toWei( '1', 'ether')
     });
-    //Charge their capacity
-    await household1.methods.charge('5000').send({
-        from: accounts[0],
-        gas: '1000000'
-        });
-    await household2.methods.charge('4000').send({
-        from: accounts[1],
-        gas: '1000000'
+    await household3.methods.deposit().send({
+        from: accounts[2],
+        gas: '1000000',
+        value: web3.utils.toWei( '1', 'ether')
     });
     
 });
@@ -207,12 +213,16 @@ describe('Households', () => {
             value:  web3.utils.toWei( '1', 'ether')
         });
 
-        await household1.methods.submitBid(10, 1000).send({
+        date = (new Date()).getTime();
+
+        await household1.methods.submitBid(10, 1000, date).send({
             from: accounts[0],
             gas: '1000000'
         });
 
-        await household2.methods.submitAsk(11, 1000).send({
+        date = (new Date()).getTime();
+
+        await household2.methods.submitAsk(11, 1000, date).send({
            from: accounts[1],
            gas: '1000000'
         });
@@ -238,11 +248,13 @@ describe('Households', () => {
             gas: '1000000'
         });
         //place bid and ask
-        await household1.methods.submitBid(10, 1000).send({
+        date = (new Date()).getTime();
+        await household1.methods.submitBid(10, 1000, date).send({
             from: accounts[0],
             gas: '1000000'
         });
-        await household2.methods.submitAsk(11, 1000).send({
+        date = (new Date()).getTime();
+        await household2.methods.submitAsk(11, 1000, date).send({
            from: accounts[1],
            gas: '1000000'
         });
@@ -277,6 +289,10 @@ describe('Households', () => {
             from: accounts[1],
             gas: '1000000'
         });
+        await household3.methods.setExchange(addressExchange).send({
+            from: accounts[2],
+            gas: '1000000'
+        });
         //deposit some ether to exchange
         await exchange.methods.deposit().send({
             from:accounts[2],
@@ -294,36 +310,45 @@ describe('Households', () => {
         console.log('pre balance of contract 1',pre_balance1);
         console.log('pre balance of contract 2', pre_balance2);
 
-        try{
-        //send a Bid and an Ask that will match to provoke a transaction between both contracts(Households)
-        await household1.methods.submitBid(10, 1000).send({
-            from: accounts[0],
-            gas: '1999999'
-        });
-        await household2.methods.submitAsk(10, 2000).send({
-            from: accounts[1],
-            gas: '1999999'
-        });
+        try {
+            date = (new Date()).getTime();
+            //send a Bid and an Ask that will match to provoke a transaction between both contracts(Households)
+            await household3.methods.submitBid(10, 1000, date).send({
+                from: accounts[2],
+                gas: '1999999'
+            });
+            date = (new Date()).getTime();
+            await household1.methods.submitBid(10, 1000, date).send({
+                from: accounts[0],
+                gas: '1999999'
+            });
+            date = (new Date()).getTime();
+            await household2.methods.submitAsk(10, 2000, date).send({
+                from: accounts[1],
+                gas: '1999999'
+            });
 
-         //check on amountOfCharge after transaction
-        let  exchangeBids = await exchange.methods.getBid(0).call();
-        let  exchangeAsks = await exchange.methods.getAsk(0).call();
 
-        let transactionConfirmation = await exchange.methods.transactionConfirmation().call();
-         post_amountOfCharge1 = await household1.methods.amountOfCharge().call();
-         post_amountOfCharge2 = await household2.methods.amountOfCharge().call();
-         post_balance1 = await web3.eth.getBalance(household1.options.address);
-         post_balance2 = await web3.eth.getBalance(household2.options.address);
-         console.log('exchange bids', exchangeBids);
-         console.log('exchange asks', exchangeAsks);
-         console.log('transaction confirmation', transactionConfirmation);
-         console.log('post amount of charge of contract1',post_amountOfCharge1);
-         console.log('post amount of charge of contract 2', post_amountOfCharge2);
-         console.log('post balance of contract 1',post_balance1);
-         console.log('post balance of contract 2', post_balance2);
+            //check on amountOfCharge after transaction
+            let exchangeBids = await exchange.methods.getBidsCount().call();
+            let exchangeAsks = await exchange.methods.getAsksCount().call();
+
+            post_amountOfCharge1 = await household1.methods.amountOfCharge().call();
+            post_amountOfCharge2 = await household2.methods.amountOfCharge().call();
+            post_balance1 = await web3.eth.getBalance(household1.options.address);
+            post_balance2 = await web3.eth.getBalance(household2.options.address);
+            console.log('exchange bids', exchangeBids);
+            console.log('exchange asks', exchangeAsks);
+            console.log('post amount of charge of contract1',post_amountOfCharge1);
+            console.log('post amount of charge of contract 2', post_amountOfCharge2);
+            console.log('post balance of contract 1',post_balance1);
+            console.log('post balance of contract 2', post_balance2);
+            assert(exchangeBids,0);
+            assert(exchangeAsks, 0);
          } catch(err) {
             console.log(err);
          }
+         
 
     });
 })

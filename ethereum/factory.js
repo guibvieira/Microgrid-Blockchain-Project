@@ -6,7 +6,7 @@
 const web3 = require('./web3');
 const HouseholdFactory = require ('./build/HouseholdFactory.json');
 
-//replace this address with the deployed version of batteryfactory
+//replace this address with the deployed version of householdFactory
 const instance = new web3.eth.Contract(
     JSON.parse(HouseholdFactory.interface),
     '0x08c779977910ffaE46D1Ed737dcEC1cfb2eda975'

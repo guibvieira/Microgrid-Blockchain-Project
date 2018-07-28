@@ -1,7 +1,9 @@
+
 pragma solidity ^0.4.17;
 
 contract HouseholdFactory{
     address[] public deployedHouseholds;
+    mapping (address => uint) public balances;
     address public owner;
     
     constructor() public{
@@ -10,11 +12,22 @@ contract HouseholdFactory{
     
     function createHousehold(uint capacity ) public{
         address newHousehold = new Household(capacity, msg.sender, owner);
+        // alternatively (new Household).value(1000000)(capacity, msg.sender, owner)
+        // to send ether with creation
         deployedHouseholds.push(newHousehold);
+        balances[newHousehold] = 0;
     }
     
     function getDeployedHouseholds() public view returns (address[]) {
         return deployedHouseholds;
+    }
+
+    function addBalance(address target,uint price) public {
+        balances[target] += price;
+    }
+    
+    function subBalance(address target,uint price) public {
+        balances[target] -= price;
     }
 }
 
@@ -30,8 +43,8 @@ contract Household{
     
     struct Bid{
         address origin;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
         uint date;
     }
     
@@ -39,7 +52,7 @@ contract Household{
     Bid[] public Asks;
     address public owner;
     address public contractAddress;
-    address public factory;
+    address public parent;
     address public exchangeAddress;
     uint public balanceContract;
     Exchange ex;
@@ -50,7 +63,7 @@ contract Household{
         owner = creator;
         batteryCapacity = capacity;
         amountOfCharge = capacity;
-        factory = watch_address;
+        parent = watch_address;
         contractAddress = address(this);
     }
     
@@ -65,19 +78,8 @@ contract Household{
         excessEnergy = _excessEnergy;
     }
 
-    function getSmartMeterDetails() public view returns(address, uint, uint, uint, uint, uint){
-        return (
-            owner, 
-            currentDemand,
-            currentSupply,
-            batteryCapacity,
-            amountOfCharge,
-            excessEnergy
-        );
-    }
-
     
-    function getBids(uint index) public view returns(address, uint8, uint8, uint){
+    function getBids(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
                 Bids[index].price,
                 Bids[index].amount,
@@ -85,7 +87,7 @@ contract Household{
         );
     }
 
-    function getAsks(uint index) public view returns(address, uint8, uint8, uint){
+    function getAsks(uint index) public view returns(address, uint, uint, uint){
         return (Asks[index].origin,
                 Asks[index].price,
                 Asks[index].amount,
@@ -105,31 +107,31 @@ contract Household{
         amountOfCharge -= amount;
     }
     
-    function submitBid(uint8 price, uint8 amount, uint timestamp) public restricted returns (bool){
+    function submitBid(uint price, uint amount) public restricted returns (bool){
         Bid memory newBid = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: timestamp
+            date: now
         });
         
         Bids.push(newBid);
         ex = Exchange(exchangeAddress);
-        return ex.placeBid(price, amount, timestamp);
+        return ex.placeBid(price, amount);
         
     }
     
-    function submitAsk(uint8 price, uint8 amount, uint timestamp) public restricted returns(bool) {
+    function submitAsk(uint price, uint amount) public restricted returns(bool) {
         Bid memory newAsk = Bid({
             origin: contractAddress,
             price: price,
             amount: amount,
-            date: timestamp
+            date: now
         });
         
         Asks.push(newAsk);
         ex = Exchange(exchangeAddress);
-        return ex.placeAsk(price, amount,timestamp);
+        return ex.placeAsk(price, amount);
     }
 
     function buyEnergy(uint _amount, address _recipient, uint _price ) public payable returns(bool successful){
@@ -138,7 +140,8 @@ contract Household{
 
         hh = Household(_recipient);
         hh.discharge(_amount);
-        
+
+
         _recipient.transfer( (_amount/1000)*_price);
         
         return true;
@@ -165,21 +168,23 @@ contract Exchange {
 
     struct Bid {
         address owner;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
         uint date;
     }
 
     struct Ask {
         address owner;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
         uint date;
     }
 
     Bid[] public Bids;
     Ask[] public Asks;
     Household hh;
+    
+    bool public transactionConfirmation;
 
     constructor() public payable{}
     
@@ -188,20 +193,21 @@ contract Exchange {
 
     function () public payable{}
 
-    function getBid(uint index) public view returns(address, uint, uint, uint){
+    function getBid(uint index) public returns(address, uint, uint, uint){
         return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
     }
 
-    function getAsk(uint index) public view returns(address, uint, uint, uint){
+    function getAsk(uint index) public  returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
 
-    function placeBid(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
+
+    function placeBid(uint _price, uint _amount) public returns (bool) {
         Bid memory b;
         b.owner = msg.sender;
         b.price = _price;
         b.amount = _amount;
-        b.date = timestamp;
+        b.date = now;
 
         for(uint i = 0; i < Bids.length; i++) {
             if(Bids[i].price > _price) {
@@ -231,12 +237,12 @@ contract Exchange {
         return true;
     }
 
-    function placeAsk(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
+    function placeAsk(uint _price, uint _amount) public returns (bool) {
         Ask memory a;
         a.owner = msg.sender;
         a.price = _price;
         a.amount = _amount;
-        a.date = timestamp;
+        a.date = now;
 
 
         for (uint i = 0; i < Asks.length; i ++) {
@@ -265,7 +271,7 @@ contract Exchange {
     }
 
     function matchBid(uint bid_index, uint ask_index) public returns (bool) {
-        if (Bids[bid_index].amount == 0 || Asks[ask_index].amount == 0 || Bids[bid_index].price < Asks[ask_index].price) {
+        if (Bids[bid_index].price < Asks[ask_index].price) {
             return true;
         }
         
@@ -274,16 +280,16 @@ contract Exchange {
         uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
 
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) >= 0){
-            uint8 remainder = Bids[bid_index].amount - Asks[ask_index].amount;
-            uint8 calcAmount = Bids[bid_index].amount - remainder;
+            uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
+            uint calcAmount = Bids[bid_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
+            //transactionConfirmation = hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
             
             Bids[bid_index].amount = remainder;
             if(remainder==0){
-                delete Bids[bid_index];
+                removeBid(bid_index);
             }
-            delete Asks[ask_index];
+            removeAsk(ask_index);
             
             return true;
         }
@@ -292,30 +298,30 @@ contract Exchange {
             remainder = Asks[ask_index].amount - Bids[bid_index].amount;
             calcAmount = Asks[ask_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
+            //hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
             
-           Asks[ask_index].amount = remainder;
+            Asks[ask_index].amount = remainder;
             if(remainder == 0){
-                delete Asks[ask_index];
+                removeAsk(ask_index);
             }
-            delete Bids[bid_index];
+            removeBid(bid_index);
             
             return true;
         }
     }
-    
-    function removeBid(uint index)  public {
-        if (index >= Bids.length) return;
 
+    function removeBid(uint index) public {
+        if (index >= Bids.length) return;
+        
         for (uint i = index; i<Bids.length-1; i++){
             Bids[i] = Bids[i+1];
         }
         Bids.length--;
     }
-    
-    function removeAsk(uint index)  public {
-        if (index >= Asks.length) return;
 
+    function removeAsk(uint index) public {
+        if (index >= Asks.length) return;
+        
         for (uint i = index; i<Asks.length-1; i++){
             Asks[i] = Asks[i+1];
         }
