@@ -1,44 +1,52 @@
 import React, { Component } from 'react';
-import {Card, Button} from 'semantic-ui-react';
+import { Card } from 'semantic-ui-react';
+import Layout from '../components/Layout';
+import HouseholdForm from '../components/HouseholdForm';
+import { Link, Router } from '../routes';
 import factory from '../ethereum/factory';
+import web3 from '../ethereum/web3';
 
 
-//functional component
-// export default () => {
-//     return (
-//         <h1>This is the microgrid list page!!</h1>
-//     );
-// };
-
-class Household extends Component{
+class HouseholdIndex extends Component {
     static async getInitialProps() {
         const households = await factory.methods.getDeployedHouseholds().call();
 
-        return { households : households};
-    }      
+
+        return { 
+            households
+        };
+    }
 
     renderHouseholds(){
+        console.log('renderHouseholds', this.props);
         const items = this.props.households.map(address => {
             return{
                 header: address,
-                description: (<a>View Household</a>),
-                fluid:true
+                description: (
+                    <Link route='household' params={{address}} >
+                        <a>View Household</a>
+                    </Link>
+                ),
+                fluid: true
             };
         });
 
         return <Card.Group items={items} />;
     }
 
+    
+
     render() {
         return(
-            <div>
-
-                <h3>Open Households</h3>
-
+            <Layout>
+                <h3>Create Households</h3>
+                <HouseholdForm households={this.props.households} class="short"></HouseholdForm>
+                <h3>Open Households in Microgrid</h3>
                 {this.renderHouseholds()}
-            </div>
+            </Layout>
+            
         )
     }
 }
 
-export default Household;
+export default HouseholdIndex;

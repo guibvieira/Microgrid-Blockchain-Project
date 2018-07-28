@@ -310,42 +310,41 @@ describe('Households', () => {
         console.log('pre balance of contract 1',pre_balance1);
         console.log('pre balance of contract 2', pre_balance2);
 
-        try{
-        date = (new Date()).getTime();
-        //send a Bid and an Ask that will match to provoke a transaction between both contracts(Households)
-        await household3.methods.submitBid(10, 1000, date).send({
-            from: accounts[2],
-            gas: '1999999'
-        });
-        date = (new Date()).getTime();
-        await household1.methods.submitBid(10, 1000, date).send({
-            from: accounts[0],
-            gas: '1999999'
-        });
-        date = (new Date()).getTime();
-        await household2.methods.submitAsk(10, 2000, date).send({
-            from: accounts[1],
-            gas: '1999999'
-        });
+        try {
+            date = (new Date()).getTime();
+            //send a Bid and an Ask that will match to provoke a transaction between both contracts(Households)
+            await household3.methods.submitBid(10, 1000, date).send({
+                from: accounts[2],
+                gas: '1999999'
+            });
+            date = (new Date()).getTime();
+            await household1.methods.submitBid(10, 1000, date).send({
+                from: accounts[0],
+                gas: '1999999'
+            });
+            date = (new Date()).getTime();
+            await household2.methods.submitAsk(10, 2000, date).send({
+                from: accounts[1],
+                gas: '1999999'
+            });
 
 
-         //check on amountOfCharge after transaction
-        let exchangeBids = await exchange.methods.getBidsCount().call();
-        let exchangeAsks = await exchange.methods.getAsksCount().call();
+            //check on amountOfCharge after transaction
+            let exchangeBids = await exchange.methods.getBidsCount().call();
+            let exchangeAsks = await exchange.methods.getAsksCount().call();
 
-         post_amountOfCharge1 = await household1.methods.amountOfCharge().call();
-         post_amountOfCharge2 = await household2.methods.amountOfCharge().call();
-         post_balance1 = await web3.eth.getBalance(household1.options.address);
-         post_balance2 = await web3.eth.getBalance(household2.options.address);
-        console.log('exchange bids', exchangeBids);
-         console.log('exchange asks', exchangeAsks);
-         console.log('post amount of charge of contract1',post_amountOfCharge1);
-         console.log('post amount of charge of contract 2', post_amountOfCharge2);
-         console.log('post balance of contract 1',post_balance1);
-         console.log('post balance of contract 2', post_balance2);
-
-         assert(exchangeBids,0);
-         assert(exchangeAsks, 0);
+            post_amountOfCharge1 = await household1.methods.amountOfCharge().call();
+            post_amountOfCharge2 = await household2.methods.amountOfCharge().call();
+            post_balance1 = await web3.eth.getBalance(household1.options.address);
+            post_balance2 = await web3.eth.getBalance(household2.options.address);
+            console.log('exchange bids', exchangeBids);
+            console.log('exchange asks', exchangeAsks);
+            console.log('post amount of charge of contract1',post_amountOfCharge1);
+            console.log('post amount of charge of contract 2', post_amountOfCharge2);
+            console.log('post balance of contract 1',post_balance1);
+            console.log('post balance of contract 2', post_balance2);
+            assert(exchangeBids,0);
+            assert(exchangeAsks, 0);
          } catch(err) {
             console.log(err);
          }

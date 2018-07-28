@@ -1,0 +1,20 @@
+import React, { Component } from 'react';
+import Layout from '../../../components/Layout';
+import HouseholdContract from '../../..//ethereum/household';
+import web3 from '../../..//ethereum/web3';
+import Exchange from '../../../ethereum/exchange';
+
+class ExchangePage extends Component {
+    static async getInitialProps() {
+        const exchange = Exchange;
+        
+        return {
+            exchance: exchange 
+         };
+    }
+    render(){
+        return(        
+            <h3>Here is the Exchange Page</h3>
+        );
+    }
+}
