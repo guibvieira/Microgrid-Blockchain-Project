@@ -80,7 +80,7 @@ class SubmitBidInput extends Component {
              <label>Total (£)</label>
                 <Input
                 type='number'
-                value={this.state.price*this.state.amount/10000}
+                value={this.state.price*this.state.amount/100000}
                 size='mini'
                 label='£'
                 labelPosition='right'       

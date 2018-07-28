@@ -72,7 +72,7 @@ class SubmitSellInput extends Component {
              <label>Total (£)</label>
                 <Input
                 type='number'
-                value={this.state.amount*this.state.price/10000}
+                value={this.state.amount*this.state.price/100000}
                 size='mini'
                 label='£'
                 labelPosition='right'                
