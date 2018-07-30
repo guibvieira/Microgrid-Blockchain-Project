@@ -13,7 +13,7 @@ import { Container, Row, Col } from 'react-grid-system';
 import { setConfiguration } from 'react-grid-system';
 import ReactGrids from 'react-grids';
  
-// setConfiguration({ defaultScreenClass: 'xl', gridColumns: 2, containerWidths: 'xl' });
+setConfiguration({ gridColumns: 2, containerWidths: 'xl', gutterWidth : 30});
 
 class ExchangePage extends Component {
     state = {
@@ -110,71 +110,23 @@ class ExchangePage extends Component {
         ]
         return (
         <Layout>
-            <ReactGrids.Wrap
-        cutoff={599}
-        align="center"
-        className="my-grids-wrapper"
-        max-width={960}
-    >
-        <ReactGrids.Column
-            base={10}
-            span={8}
-        >
-            <h3>Buy Order Book</h3>
-                    <Table style={{width: "575px"}}>
-                        <Header>
-                            <Row>
-                                <HeaderCell>ID</HeaderCell>
-                                <HeaderCell>From address</HeaderCell>
-                                <HeaderCell>Amount</HeaderCell>
-                                <HeaderCell>Price</HeaderCell>
-                                <HeaderCell>Date</HeaderCell>
-                            </Row>
-                        </Header>
-                        <Body>
-                            {this.renderBuyRows()} 
-                        </Body>
-                    </Table>
-                    <div>There are {this.props.bidsCount} bids.</div>
-                    <div>Buying Volume is {this.props.sumBids} W/h.</div>
 
-            <h3>Ask Order Book</h3>
-                    <Table style={{width: "575px"}}>
-                    <Header>
-                        <Row>
-                            <HeaderCell>ID</HeaderCell>
-                            <HeaderCell>From address</HeaderCell>
-                            <HeaderCell>Amount</HeaderCell>
-                            <HeaderCell>Price</HeaderCell>
-                            <HeaderCell>Date</HeaderCell>
-                        </Row>
-                    </Header>
-                    <Body>
-                        {this.renderAskRows()} 
-                    </Body>
-                    </Table>
-                <div>There are {this.props.asksCount} asks.</div>
-                <div>Buying Volume is {this.props.sumAsks} W/h.</div>
-        </ReactGrids.Column>
-        <br />
-        <ReactGrids.Column
-            base="6" 
-            span="10"
-        >
-        <h3>Submit Bid</h3>
-                    <SubmitBidInput address={this.props.address} style={{marginBottom: '10px', width: "50px"}} /> 
-        
-        <h3>Submit Ask</h3>
-                    <SubmitSellInput address={this.props.address} />
-        </ReactGrids.Column>
-    </ReactGrids.Wrap>
-
-            {/* <Container fluid style={{ lineHeight: '40px' }} >
+            <Container fluid style={{ lineHeight: '40px' }} >
             <Menu compact style={{marginBottom: '10px'}} >
                 <Dropdown text='Buy/Sell' options={options}  simple item />
             </Menu> 
             <Row>
-                <Col debug sm={6}>
+                
+
+                 <Col debug sm={5} offset={{ md: 6 }}>
+                <div>
+                    column 2
+                    <h3>Submit Bid</h3>
+                    <SubmitBidInput address={this.props.address} style={{marginBottom: '10px', width: "50px"}} /> 
+                </div>
+                </Col> 
+
+                <Col debug sm={5}>
                 <div>
                     collumn 1
                     <h3>Buy Order Book</h3>
@@ -196,17 +148,11 @@ class ExchangePage extends Component {
                     <div>Buying Volume is {this.props.sumBids} W/h.</div>
                 </div>
                  </Col>
-                 <Col debug sm={6}>
-                <div>
-                    column 2
-                    <h3>Submit Bid</h3>
-                    <SubmitBidInput address={this.props.address} style={{marginBottom: '10px', width: "50px"}} /> 
-                </div>
-                </Col> 
+                
             </Row>
             <br />
             <Row>
-                <Col md={3}>
+                <Col sm={8}>
                     <h3>Ask Order Book</h3>
                     <Table style={{width: "575px"}}>
                     <Header>
@@ -225,23 +171,13 @@ class ExchangePage extends Component {
                 <div>There are {this.props.asksCount} asks.</div>
                 <div>Buying Volume is {this.props.sumAsks} W/h.</div>
                 </Col>
-                <Col>
+                <Col sm={8}>
                     <h3>Submit Ask</h3>
-                    <SubmitSellInput address={this.props.address} />
+                    <SubmitSellInput address={this.props.address} style={{marginBottom: '10px', width: "50px"}}/>
                 </Col>
+               
             </Row>
-
-            
-            
-
-
-            
-
-            
-            
-            
-
-            </Container> */}
+            </Container>
         </Layout>
         ); 
     }
