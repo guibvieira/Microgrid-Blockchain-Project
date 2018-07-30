@@ -1,0 +1,29 @@
+.example {
+    font-size: 50px;
+  }
+
+.container{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: [row1-start] auto [row1-end] 37.5% [third-line] 37.5% [last-line];
+}
+.itemBids{
+    grid-column-start: first;
+    grid-column-end: line2;
+    grid-row-start: row1-end;
+    grid-row-end: row1-end;
+}
+
+.itemAsks{
+    grid-column-start: first;
+    grid-column-end: line2;
+    grid-row-start: third-line;
+    grid-row-end: last-line;
+}
+
+.itemOrders{
+    grid-column-start: line2;
+    grid-column-end: line3;
+    grid-row-start: row1-end;
+    grid-row-end: third-line;
+}

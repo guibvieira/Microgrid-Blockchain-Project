@@ -5,6 +5,7 @@ import HouseholdForm from '../components/HouseholdForm';
 import { Link, Router } from '../routes';
 import factory from '../ethereum/factory';
 import web3 from '../ethereum/web3';
+import css from "./style.css";
 
 
 class HouseholdIndex extends Component {
@@ -39,7 +40,7 @@ class HouseholdIndex extends Component {
     render() {
         return(
             <Layout>
-                <h3>Create Households</h3>
+                <h3>Create Household</h3>
                 <HouseholdForm households={this.props.households} class="short"></HouseholdForm>
                 <h3>Open Households in Microgrid</h3>
                 {this.renderHouseholds()}

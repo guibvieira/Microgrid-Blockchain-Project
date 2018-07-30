@@ -34,8 +34,9 @@ class SubmitBidInput extends Component {
                 from: accounts[0],
                 gas: '1999999'
             });
-
-            Router.replaceRoute(`/households/${this.props.address}/household/exchange`);
+            Router.replaceRoute('exchange', {address: this.props.address});
+            
+            // Router.replaceRoute(`/households/${this.props.address}/exchange`);
         } catch (err) {
             this.setState({errorMessage: err.message});
         }
@@ -50,7 +51,7 @@ class SubmitBidInput extends Component {
     render() {
         return (
         
-          <Form onSubmit={this.submitBid} error={!!this.state.errorMessage}>
+          <Form style={{width: "150px"}} onSubmit={this.submitBid} error={!!this.state.errorMessage}>
            <Form.Field>
              <label>Price (p/kWh)</label>
              <Input

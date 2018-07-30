@@ -1,9 +1,12 @@
 const web3 = require('./ethereum/web3');
-let date = new Date(1532708178434);
+
+let date =new Date(1532892568124);
 let d = date.toLocaleString();
 console.log(d);
 //let date = (new Date()).getTime();
-//let date = (new Date()).getTime(1532707647421);
+// let date = (new Date()).getTime(1532707647421)
+// let d = date.toLocaleString();
+// console.log(d);
 // let birthDateInUnixTimestamp = date ;
 // let f=web3.utils.toUtf8(date);
 // console.log('bytes', d)

@@ -105,6 +105,7 @@ class HouseholdPage extends Component {
         return (
             <Layout>
                 <h1>Household Page Summary</h1>
+                <div>{this.props.url.query.household}</div>
                 <Link route={'exchange'} params={{ address : this.props.address}}>
                 <Button position='right' secondary>Go to Exchange</Button>
                 </Link>

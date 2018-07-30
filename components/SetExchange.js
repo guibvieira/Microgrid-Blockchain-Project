@@ -30,7 +30,8 @@ class SetExchange extends Component {
                 gas: '1000000'
             });
 
-            Router.replaceRoute(`/households/${this.props.address}`);
+            // Router.replaceRoute(`/households/${this.props.address}`);
+            Router.replaceRoute('household', {address: this.props.address});
         } catch (err) {
             this.setState({errorMessage: err.message})
         }
