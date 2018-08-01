@@ -24,8 +24,8 @@ beforeEach(async() => {
     //create agent instance
     agent = new Agent(5000);
 
-    agentAccount = await agent.getAccount();
-    //console.log(agent.ethereumAddress);
+    agentAccount = await agent.getAccount(0);
+    console.log('agent account', agent.ethereumAddress);
     agentBalance = await agent.getAgentBalance();
     //console.log(agent.balance);
 
@@ -39,7 +39,7 @@ describe('Agents', () => {
 
         console.log('contract address', agent.householdAddress);
         
-        let exchangeAddress= await agent.newHousehold.methods.exchangeAddress().call();
+        let exchangeAddress= await agent.household.methods.exchangeAddress().call();
         let balance= await web3.eth.getBalance(agent.householdAddress);
         assert(exchangeAddress, exchange.options.address );
         assert(web3.utils.fromWei('2', 'ether'), balance);
@@ -47,13 +47,13 @@ describe('Agents', () => {
     });
 
     it('can charge and discharge an existing Contract of Agent', async () =>{
-        let preChargeAmount = await agent.newHousehold.methods.amountOfCharge().call();
+        let preChargeAmount = await agent.household.methods.amountOfCharge().call();
 
         await agent.chargeContract(1000);
 
-        let postChargeAmount =  await agent.newHousehold.methods.amountOfCharge().call();
+        let postChargeAmount =  await agent.household.methods.amountOfCharge().call();
         await agent.dischargeContract(2000);
-        let postDischargeAmount = await agent.newHousehold.methods.amountOfCharge().call();
+        let postDischargeAmount = await agent.household.methods.amountOfCharge().call();
 
         assert(postChargeAmount-1000, preChargeAmount);
         assert(postDischargeAmount+2000, postChargeAmount);
@@ -118,9 +118,9 @@ describe('Agents', () => {
     it('can set a summary of smartMeter details of the contract', async () =>{
         await agent.setSmartMeterDetails(1200, 1400);
 
-        let demand = await agent.newHousehold.methods.currentDemand().call();
-        let supply = await agent.newHousehold.methods.currentSupply().call();
-        let excess = await agent.newHousehold.methods.excessEnergy().call();
+        let demand = await agent.household.methods.currentDemand().call();
+        let supply = await agent.household.methods.currentSupply().call();
+        let excess = await agent.household.methods.excessEnergy().call();
         assert(demand, 1400);
         assert(supply, 1200);
         assert(excess, 200);
