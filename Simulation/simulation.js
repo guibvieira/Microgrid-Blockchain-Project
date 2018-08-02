@@ -7,7 +7,6 @@ web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
 const Agent = require('../models/agent.js');
 
 //compiled contracts
-const compiledHousehold = require('../ethereum/build/Household.json');
 const factory = require('../ethereum/factory');
 const exchange = require('../ethereum/exchange');
 
@@ -15,15 +14,13 @@ const readCSV = require('./readFile.js');
 let fs = require('fs');
 let parse = require('csv-parse');
 let async = require('async');
-    let householdHistoricData = new Array();
-    let householdHistoricData2 = new Array();
-    let inputFile = '../data/metadata-LCOE.csv';
-    let id = new Array();
-    let baseValue = new Array();
-    let baseValueBattery = new Array();
-    let householdFiles = new Array();
-    let agentsNoBattery = new Array();
-    let agentsBattery = new Array();
+let inputFile = '../data/metadata-LCOE.csv';
+let id = new Array();
+let baseValue = new Array();
+let baseValueBattery = new Array();
+
+let agentsNoBattery = new Array();
+let agentsBattery = new Array();
 
 
 async function loadData(inputFile){
@@ -31,94 +28,87 @@ async function loadData(inputFile){
     return resultSet;
 }
 
+function deleteRow(arr, row) {
+    arr = arr.slice(0); // make copy
+    arr.splice(row, 1);
+    return arr;
+ }
 
+async function getFiles() {
+    let householdFiles = new Array();
+    let householdHistoricData = new Array();
+    let metaData= await loadData(inputFile);
+
+    metaData = deleteRow(metaData, 0);// remove header of file
+
+    for (i=0; i<metaData.length; i++){
+            id.push( metaData[i][0] );
+            baseValue.push( metaData[i][2] );
+            baseValueBattery.push( metaData[i][3] );
+            householdFiles.push(`../data/household_${id[i]}.csv`);
+    }
+
+    for (const file of householdFiles){
+        householdHistoricData.push( await loadData(file));
+    }
+    const responses = await Promise.all(householdHistoricData);
+    return { metaData, householdHistoricData};
+}
+
+async function createAgents(metaData, householdHistoricData, batteryCapacity) {
+    let agents = new Array();
+   
+
+    try{
+    for (const item in metaData){
+
+        //creation of agents and feeding the data in
+        agent = new Agent(batteryCapacity); //no battery capacity passed
+
+        agentAccount = await agent.getAccount(item);
+        
+        household = await agent.deployContract();
+
+        
+        const awaitResults = await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item]);
+        agents.push(new Array(id[item], agent, agentAccount));
+        
+    }               
+    return agents;
+
+    }catch(err){
+        console.log(err)
+    }
+    
+}
 
 async function init(){
 
-    async function getFiles() {
-        const metaData= await loadData(inputFile);
+    let { metaData, householdHistoricData } = await getFiles();
 
-        for (i=1; i<metaData.length/2; i++){
-                console.log(i);
-                id.push( metaData[i][0] );
-                baseValue.push( metaData[i][2] );
-                baseValueBattery.push( metaData[i][3] );
-                householdFiles.push(`../data/household_${id[i-1]}.csv`);
-        }
+    let metaDataBattery = metaData.slice(0, Math.floor(metaData.length/2));
+    let metaDataNoBattery = metaData.slice( Math.floor(metaData.length)/2 , metaData.length-1 );
+
+    let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length)/2 );
+    let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
+
+    let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000);
+    let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0);
+
+    //start simulation
     
-        for (const file of householdFiles){
-            householdHistoricData.push( await loadData(file));
-        }
-        const responses = await Promise.all(householdHistoricData);
-        //console.log(responses);
-        return { householdHistoricData, metaData};
-    }
-    let fileResults = await getFiles();
-//    await getFiles().then( await createAgents(metaData, householdHistoricData));
-     metaData = fileResults.metaData;
-     householdHistoricData = fileResults.householdHistoricData;
+    // for (i= 0; i < householdHistoricData.length; i++){
 
-     await createAgents(metaData, householdHistoricData);
+    //     for (j = 0; j < agentsBattery.length; j++){
+    //         //setTimeStepInAgent
+    //         //correctWeights()
 
-   
+    //         //makePredicitonDemand() --> will save prediction within class
+    //         //makePredictionSupply() --> will save prediction within class
 
-
-    // console.log('metaData', fileResults.metaData);
-    // console.log('household historical data', fileResults.householdHistoricData[0]);
-    
-    // async function y (metaData, householdHistoricData) {
-    //     if (fileResults !== null){
-    //         results = await createAgents(metaData, householdHistoricData);
-
-    //         console.log('agents without battery', results.agentsNoBattery);
-    //         console.log('agents with battery', results.agentsBattery);
+    //         //runAgentLogicDecision()
     //     }
-    //     else{
-    //         setTimeout(y, 1000);
-    //     }
-    // }  
-    // await y(metaData, householdHistoricData);
-        
-
-
-
-    
-
-    async function createAgents(metaData, householdHistoricData){
-        console.log('this is id ', metaData);
-        
-        for (const item in metaData){
-            //console.log(i);            
-        
-            //creation of agents and feeding the data in
-            agent = new Agent(0); //no battery capacity passed
-            agentAccount = await agent.getAccount(item);
-            //console.log('agents account', agentAccount);
-            household = await agent.deployContract();
-            //console.log('household contract', household);
-            //console.log('this is household data:', householdHistoricData[0]);
-            try{
-                const awaitResults = await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item]);
-            await Promise.all(awaitResults);
-            }catch(err){
-                console.log(err)
-            }
-                
-            agentsNoBattery.push( new Array(id, agent));
-        }
-    
-        //create half of the households with battery Capacity
-        // for (i=23; i<46; i++){
-        //         //creation of agents and feeding the data in
-        //     agent = new Agent(12000); //tesla powerwall
-        //     agentAccount = await agent.getAccount(i);
-        //     household = await agent.deployContract();
-        //     await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i]);
-        //     agentsBattery.push(new Array(id, agent));
-           
-        // }
-        return {  agentsNoBattery };
-    }
+    // }
 };
 
 init();

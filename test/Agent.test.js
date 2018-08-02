@@ -6,6 +6,7 @@ const ganache = require('ganache-cli');
 const web3 = require('../ethereum/web3.js');
 //probably same as web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
 const Agent = require('../models/agent.js');
+const readCSV = require('../Simulation/readFile.js');
 
 //compiled contracts
 const compiledHousehold = require('../ethereum/build/Household.json');
@@ -20,7 +21,7 @@ let date;
 
 beforeEach(async() => {
     accounts = await web3.eth.getAccounts();
-    //console.log(accounts[0]);
+ 
     //create agent instance
     agent = new Agent(5000);
 
@@ -30,6 +31,7 @@ beforeEach(async() => {
     //console.log(agent.balance);
 
     household = await agent.deployContract(5000);
+
 
 });
 
@@ -124,6 +126,117 @@ describe('Agents', () => {
         assert(demand, 1400);
         assert(supply, 1200);
         assert(excess, 200);
+    });
+
+    it('can deploy and pass historical data to each agent', async () =>{
+        let householdHistoricData = new Array();
+        let householdHistoricData2 = new Array();
+        let inputFile = 'data/metadata-LCOE.csv';
+        let id = new Array();
+        let baseValue = new Array();
+        let baseValueBattery = new Array();
+        let householdFiles = new Array();
+        let agentsNoBattery = new Array();
+        let agentsBattery = new Array();
+
+
+    async function loadData(inputFile){
+        let resultSet = await readCSV(inputFile);
+        return resultSet;
+    }
+
+    async function createAgents(metaData, householdHistoricData){
+        //console.log('this is meta data: ', metaData[0]);
+        
+        for (i=0; i<23; i++){
+                console.log(i);            
+        
+                //creation of agents and feeding the data in
+                agent = new Agent(0); //no battery capacity passed
+                agentAccount = await agent.getAccount(i);
+                //console.log('agents account', agentAccount);
+                household = await agent.deployContract();
+                //console.log('household contract', household);
+                console.log('this is household data:', householdHistoricData[0]);
+                await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i]);
+                agentsNoBattery.push( new Array(id, agent));
+        }
+    
+        //create half of the households with battery Capacity
+        for (i=23; i<46; i++){
+                //creation of agents and feeding the data in
+            agent = new Agent(12000); //tesla powerwall
+            agentAccount = await agent.getAccount(i);
+            household = await agent.deployContract();
+            await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i]);
+            agentsBattery.push(new Array(id, agent));
+           
+        }
+        return { agentsBattery, agentsNoBattery };
+    }
+
+    async function getFiles() {
+        const metaData= await loadData(inputFile);
+
+        for (i=1; i<metaData.length/2; i++){
+                console.log(i);
+                id.push( metaData[i][0] );
+                baseValue.push( metaData[i][2] );
+                baseValueBattery.push( metaData[i][3] );
+                householdFiles.push(`data/household_${id[i-1]}.csv`);
+        }
+    
+        for (const file of householdFiles){
+            householdHistoricData.push( await loadData(file));
+        }
+        //console.log(results);
+       return { householdHistoricData, metaData};
+    }
+    fileResults = await getFiles();
+    metaData = fileResults.metaData;
+    householdHistoricData = fileResults.householdHistoricData;
+    
+    results = await createAgents(metaData, householdHistoricData);
+    console.log(results.agentsBattery);
+    
+    //metaData= await loadData(inputFile);
+    //console.log(metaData.length/2);
+    //console.log('logging results household 26', metaData);
+    //create half the households without any battery Capacity
+    // for (i=1; i<23; i++){
+    //     console.log(i);
+    //     // id = metaData[i][0];
+    //     // baseValue = metaData[i][2];
+    //     // baseValueBattery = metaData[i][3];
+    //     // householdFile = `./data/household_${id}.csv`;
+        
+    //    // householdHistoricData = await loadData(householdFile);
+
+    //     //creation of agents and feeding the data in
+    //     agent = new Agent(0); //no battery capacity passed
+    //     agentAccount = await agent.getAccount(i);
+    //     household = await agent.deployContract();
+    //     //await agent.loadSmartMeterData(householdHistoricData, baseValue, baseValueBattery);
+    //     agentsNoBattery.push( new Array(agent));
+    // }
+    
+    //create half of the households with battery Capacity
+    // for (i=metaData.length/2; i<metaData.length; i++){
+    //     id = metaData[i][0];
+    //     baseValue = metaData[i][2];
+    //     baseValueBattery = metaData[i][3];
+    //     householdFile = `./data/household_${id}.csv`;
+        
+    //     householdVar = await loadData(householdFile);
+
+    //     //creation of agents and feeding the data in
+    //     agent = new Agent(12000); //tesla powerwall
+    //     agentAccount = await agent.getAccount(i);
+    //     household = await agent.deployContract();
+    //     await agent.loadSmartMeterData(householdHistoricData, baseValue, baseValueBattery);
+    //     agentsBattery.push(new Array(id, agent));
+
+    // }
     });
 
 

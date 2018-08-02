@@ -28,6 +28,7 @@ class Agent{
     constructor(batteryCapacity){
         this.getDate();
         this.getCurrentTime();
+        this.timeRow = 0;
         this.balance =0;
         this.householdAddress = 0;
         this.household = 0;
@@ -43,16 +44,29 @@ class Agent{
         this.householdID = 0;
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
+
+        //predictor vars
+        this.learningRate = 0.1;
+        this.weightDemandAvg = 1/3;
+        this.weightDemandRand = 1/3;
+        this.weightDemandRat = 1/3;
+        this.predAvg = 0;
+        
+        this.finalDemandPred = 0;
+
               
     }
 
-    loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery){
-        for (i=1; i<historicData.length; i++){
+    async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery){
+  
+        for (i=1; i<historicData.length-1; i++){
+   
             this.historicalDemand.push(new Array(historicData[i][0], historicData[i][1]));
             this.historicalSupply.push(new Array(historicData[i][0], historicData[i][2]));
         }
         this.baseElectValue = baseElectValue;
         this.baseElectValueBattery = baseElectValueBattery;
+        return true;
     }
     async setSmartMeterDetails(demand, supply){
         if(supply>demand){
@@ -70,6 +84,7 @@ class Agent{
     async getAccount(index) {
         let accounts = await web3.eth.getAccounts();
         this.ethereumAddress = accounts[index];
+        return this.ethereumAddress;
     }
 
     async getAgentBalance() {
@@ -162,6 +177,80 @@ class Agent{
 
         this.currentTime = hours + ":" + minutes;
     }
+
+    setCurrentTime(row){
+        this.timeRow = row;
+    }
+
+    predictorAverage(){
+        let timeInterval = 5; //5 hours of time interval
+        let averageArray = new Array();
+
+        if( this.timeRow <= timeInterval){
+            return this.historicalDemand[this.timeRow][1];
+        }
+        for(i=this.timeRow-timeInterval; i < this.timeRow; i++){
+            averageArray.push(this.historicalDemand[i][1]);
+        }
+        return averageArray.reduce((a, b) => a + b, 0);
+    }
+
+    predictorRandom(){
+        let timeInterval = 5;
+        let randomArray = new Array();
+
+        if( this.timeRow <= timeInterval){
+            return this.historicalDemand[this.timeRow];
+        }
+        for(i=this.timeRow-timeInterval; i < this.timeRow; i++){
+            randomArray.push(this.historicalDemand[i][1]);
+        }
+        return randomArray[Math.floor(Math.random() * randomArray.length)];
+    }
+
+    predictorRational(){
+        let timeInterval = 24; //check 24 hours before
+        if( this.timeRow <= timeInterval){
+            return this.historicalDemand[this.timeRow];
+        }
+        return this.historicalDemand[this.timeRow-timeInterval][1];
+    }
+
+    makeDemandPrediction(){
+        this.predAvg = predictorAverage();
+        let predRand = predictorRandom();
+        let predRat = predictorRational();
+        let sumWeights = this.weightDemandAvg + this.weightDemandRand + this.weightDemandRat;
+        this.finalDemandPred = (this.weightDemandAvg * predAvg + this.weightDemandRand * predRand + this.weightDemandRat * predRat)/sumWeights;
+        return finalPred;
+    }
+
+    correctWeights(){
+
+        if( this.predAvg == this.historicalDemand[this.timeRow]){
+            //do something, not sure yet
+        }
+        else if( this.predAvg < this.historicalDemand[this.timeRow] || this.predAvg > this.historicalDemand[this.timeRow] ){
+            this.weightDemandAvg = this.weightDemandAvg * ( 1- this.learningRate);
+        }
+
+        if( this.predRand == this.historicalDemand[this.timeRow]){
+            //do nothing supposedly
+        }
+        else if( this.predRand < this.historicalDemand[this.timeRow] || this.predRand > this.historicalDemand[this.timeRow]){
+            this.weightDemandRand = this.weightDemandRand * ( 1- this.learningRate);
+        }
+
+        if( this.predRat == this.historicalDemand[this.timeRow]){
+            //do something, not sure yet
+        }
+        else if( this.predRat < this.historicalDemand[this.timeRow] || this.predRat > this.historicalDemand[this.timeRow]){
+            this.weightDemandRat = this.weightDemandRat * ( 1- this.learningRate);
+        }
+    }   
+
+
+
 }
 
 module.exports = Agent;
