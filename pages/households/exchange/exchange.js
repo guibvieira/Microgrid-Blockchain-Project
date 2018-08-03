@@ -170,7 +170,7 @@ class ExchangePage extends Component {
             </Table>
             <div>There are {this.props.asksCount} asks.</div>
             <div>Buying Volume is {this.props.sumAsks} W/h.</div>
-
+            
         </Layout>
         ); 
     }

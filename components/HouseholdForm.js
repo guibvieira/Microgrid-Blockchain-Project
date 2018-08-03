@@ -28,15 +28,12 @@ class HouseholdForm extends Component {
                 from: accounts[0],
                 gas: '1000000'
             });
-
-            let households = this.props.households;
-            // console.log('im here');
-            // const households = await factory.methods.getDeployedHouseholds().call();
-            console.log('household address created'. households);
-            console.log('household address created'. households[households.length - 1]);
-            const household = Household(households[households.length - 1])
-            
-    
+        
+            console.log('household address created', this.props.households[this.props.households.length - 1]);
+            const household = Household(this.props.households[this.props.households.length-1])
+            /*
+            //put a pop up to warn that second transaction will be to set up the exchange
+            */
             await household.methods.setExchange(exchange.options.address).send({
                 from: accounts[0],
                 gas: '100000'
@@ -45,9 +42,11 @@ class HouseholdForm extends Component {
             Router.replaceRoute('/');
         } catch (err) {
             this.setState({errorMessage: err.message})
+            console.log('catch',this.props);
         }
         
         this.setState({loading: false});
+
     }
 
     onInputChanged(event) {
