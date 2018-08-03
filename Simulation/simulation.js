@@ -97,18 +97,25 @@ async function init(){
 
     //start simulation
     
-    // for (i= 0; i < householdHistoricData.length; i++){
+    for (i= 0; i < 50; i++){
 
-    //     for (j = 0; j < agentsBattery.length; j++){
-    //         //setTimeStepInAgent
-    //         //correctWeights()
+        for (j = 0; j < agentsBattery.length; j++){
+            //setTimeStepInAgent
 
-    //         //makePredicitonDemand() --> will save prediction within class
-    //         //makePredictionSupply() --> will save prediction within class
+            //access agent to setTime
+            agentsBattery[j][1].setCurrentTime(i);
 
-    //         //runAgentLogicDecision()
-    //     }
-    // }
+            //makePredicitonDemand() --> will save prediction within class
+            let predictionCheck = agentsBattery[j][1].makeDemandPrediction(i+10);
+
+            console.log('prediction check', predictionCheck);
+            //makePredictionSupply() --> will save prediction within class
+
+            //correctWeights()
+
+            //runAgentLogicDecision()
+        }
+    }
 };
 
 init();

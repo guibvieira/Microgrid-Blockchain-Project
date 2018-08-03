@@ -182,47 +182,63 @@ class Agent{
         this.timeRow = row;
     }
 
-    predictorAverage(){
+    predictorAverage(timeRow){
         let timeInterval = 5; //5 hours of time interval
         let averageArray = new Array();
 
-        if( this.timeRow <= timeInterval){
-            return this.historicalDemand[this.timeRow][1];
+        if( timeRow <= timeInterval){
+            return this.historicalDemandTemp[timeRow];
         }
-        for(i=this.timeRow-timeInterval; i < this.timeRow; i++){
-            averageArray.push(this.historicalDemand[i][1]);
+        for(let i=timeRow-timeInterval; i < timeRow; i++){
+            averageArray.push(this.historicalDemandTemp[i]);
         }
         return averageArray.reduce((a, b) => a + b, 0);
     }
 
-    predictorRandom(){
+    predictorRandom(timeRow){
         let timeInterval = 5;
         let randomArray = new Array();
 
-        if( this.timeRow <= timeInterval){
-            return this.historicalDemand[this.timeRow];
+        if( timeRow <= timeInterval){
+            return this.historicalDemandTemp[timeRow];
         }
-        for(i=this.timeRow-timeInterval; i < this.timeRow; i++){
-            randomArray.push(this.historicalDemand[i][1]);
+        for(let i=timeRow-timeInterval; i < timeRow; i++){
+            randomArray.push(this.historicalDemandTemp[i]);
         }
         return randomArray[Math.floor(Math.random() * randomArray.length)];
     }
 
-    predictorRational(){
+    predictorRational(timeRow){
         let timeInterval = 24; //check 24 hours before
-        if( this.timeRow <= timeInterval){
-            return this.historicalDemand[this.timeRow];
+        if( timeRow <= timeInterval){
+            return this.historicalDemand[timeRow];
         }
-        return this.historicalDemand[this.timeRow-timeInterval][1];
+        return this.historicalDemandTemp[timeRow-timeInterval];
     }
 
-    makeDemandPrediction(){
-        this.predAvg = predictorAverage();
-        let predRand = predictorRandom();
-        let predRat = predictorRational();
-        let sumWeights = this.weightDemandAvg + this.weightDemandRand + this.weightDemandRat;
-        this.finalDemandPred = (this.weightDemandAvg * predAvg + this.weightDemandRand * predRand + this.weightDemandRat * predRat)/sumWeights;
-        return finalPred;
+    makeDemandPrediction(timeRowTarget){
+        this.historicalDemandTemp = new Array();
+        for(let k=0; k<=this.timeRow; k++){
+            this.historicalDemandTemp.push(this.historicalDemand[k][1]);
+        }
+        
+        let arrayDemandPred = new Array();
+        let j = 0;
+        for (let i=this.timeRow + 1; i<= timeRowTarget; i++){
+            this.predAvg = this.predictorAverage(i);
+            this.predRand = this.predictorRandom(i);
+            this.predRat = this.predictorRational(i);
+            let sumWeights = this.weightDemandAvg + this.weightDemandRand + this.weightDemandRat;
+            arrayDemandPred.push( (this.weightDemandAvg * this.predAvg + this.weightDemandRand * this.predRand + this.weightDemandRat * this.predRat)/sumWeights);
+            this.historicalDemandTemp.push(arrayDemandPred);
+            j++;
+        }
+
+        let predictedDemand = new Array();
+        for (let x=this.timeRow; x= timeRowTarget; x++){
+            predictedDemand.push(this.historicalDemandTemp[x]);
+        }
+        return predictedDemand;
     }
 
     correctWeights(){
