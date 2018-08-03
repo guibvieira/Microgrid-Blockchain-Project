@@ -27,8 +27,6 @@ contract Household{
     uint public amountOfCharge;
     uint public excessEnergy;
     
-    
-    
     struct Bid{
         address origin;
         uint price;
@@ -78,7 +76,7 @@ contract Household{
     }
 
     
-    function getBids(uint index) public view returns(address, uint, uint, uint){
+    function getBid(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
                 Bids[index].price,
                 Bids[index].amount,
@@ -86,7 +84,7 @@ contract Household{
         );
     }
 
-    function getAsks(uint index) public view returns(address, uint, uint, uint){
+    function getAsk(uint index) public view returns(address, uint, uint, uint){
         return (Asks[index].origin,
                 Asks[index].price,
                 Asks[index].amount,
@@ -99,10 +97,12 @@ contract Household{
     }
     
     function charge(uint amount) public restricted{
+        require(amountOfCharge + amount <= batteryCapacity);
         amountOfCharge += amount;
     }
     
     function discharge(uint amount) public {
+        require(amountOfCharge - amount >= 0);
         amountOfCharge -= amount;
     }
     
@@ -154,6 +154,14 @@ contract Household{
     function deleteAsk(uint ask_index) public {
         ex = Exchange(exchangeAddress);
         ex.removeAsk(ask_index);
+    }
+
+    function getBidsCount() public view returns(uint) {
+        return Bids.length;
+    }
+    
+    function getAsksCount() public view returns(uint) {
+        return Asks.length;
     }
 
     modifier restricted() {

@@ -28,14 +28,9 @@ class HouseholdForm extends Component {
                 from: accounts[0],
                 gas: '1000000'
             });
-
-            let households = this.props.households;
-            // console.log('im here');
-            // const households = await factory.methods.getDeployedHouseholds().call();
-            console.log('household address created'. households);
-            console.log('household address created'. households[households.length - 1]);
-            const household = Household(households[households.length - 1])
-            
+            //still needs fixing
+            console.log('household address created', this.props.households);
+            const household = Household(this.props.households[this.props.households.length - 1])
     
             await household.methods.setExchange(exchange.options.address).send({
                 from: accounts[0],
@@ -74,7 +69,7 @@ class HouseholdForm extends Component {
          <Button style={{ marginTop: '2px', marginBottom: '30px' }} loading={this.state.loading} primary>
            Create!
          </Button>
-       </Form>
+        </Form>
         );
     }
 }
