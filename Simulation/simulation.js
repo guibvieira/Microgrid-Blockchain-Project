@@ -1,9 +1,9 @@
 //requirements
 //Using ganache
-const assert = require('assert');
+// const assert = require('assert');
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
-web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
+web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
 const Agent = require('../models/agent.js');
 
 //compiled contracts
@@ -45,7 +45,7 @@ async function getFiles() {
             id.push( metaData[i][0] );
             baseValue.push( metaData[i][2] );
             baseValueBattery.push( metaData[i][3] );
-            householdFiles.push(`../data/household_${id[i]}.csv`);
+            householdFiles.push(`../data/household_${id[i]}.csv`); // `householdFile
     }
 
     for (const file of householdFiles){
@@ -57,32 +57,38 @@ async function getFiles() {
 
 async function createAgents(metaData, householdHistoricData, batteryCapacity) {
     let agents = new Array();
-   
 
-    try{
+    try {
+        
     for (const item in metaData){
 
         //creation of agents and feeding the data in
-        agent = new Agent(batteryCapacity); //no battery capacity passed
+      agent = new Agent(batteryCapacity); //no battery capacity passed
 
-        agentAccount = await agent.getAccount(item);
-        
-        household = await agent.deployContract();
+      agentAccount = await agent.getAccount(item);
+    
+      household = await agent.deployContract();
 
+    
+      const awaitResults = await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item]);
+      let newAgent = {
+        id: id [item ],
+        agent,
+        agentAccount
+    }
+    agents.push(newAgent);
         
-        const awaitResults = await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item]);
-        agents.push(new Array(id[item], agent, agentAccount));
-        
-    }               
+  }   
+
     return agents;
 
-    }catch(err){
-        console.log(err)
-    }
+  } catch (err) {
+    console.log(err);
+  }
     
 }
 
-async function init(){
+async function init() {
 
     let { metaData, householdHistoricData } = await getFiles();
 
@@ -95,27 +101,30 @@ async function init(){
     let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000);
     let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0);
 
+    // console.log('agents battery object', agentsBattery);
+    // console.log('agents no battery object', agentsNoBattery);
+
     //start simulation
     
-    for (i= 0; i < 50; i++){
+    // for (i= 0; i < 15; i++){
 
-        for (j = 0; j < agentsBattery.length; j++){
-            //setTimeStepInAgent
+    //     for (j = 0; j < agentsBattery.length; j++){
+    //         //setTimeStepInAgent
 
-            //access agent to setTime
-            agentsBattery[j][1].setCurrentTime(i);
+    //         //access agent to setTime
+    //         agentsBattery[j][1].setCurrentTime(i);
 
-            //makePredicitonDemand() --> will save prediction within class
-            let predictionCheck = agentsBattery[j][1].makeDemandPrediction(i+10);
+    //         //makePredicitonDemand() --> will save prediction within class
+    //         let predictionCheck = agentsBattery[j][1].makeDemandPrediction(i+10);
 
-            console.log('prediction check', predictionCheck);
-            //makePredictionSupply() --> will save prediction within class
+    //         console.log('prediction check', predictionCheck);
+    //         //makePredictionSupply() --> will save prediction within class
 
-            //correctWeights()
+    //         //correctWeights()
 
-            //runAgentLogicDecision()
-        }
-    }
+    //         //runAgentLogicDecision()
+    //     }
+    // }
 };
 
 init();

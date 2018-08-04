@@ -14,9 +14,9 @@
 //Using ganache
 //const web3 = require('../test/Agent.test.js'); //ganache instance
 const ganache = require('ganache-cli');
-// const Web3 = require('web3');
-// const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
-const web3 = require('../ethereum/web3-ganache.js');
+const Web3 = require('web3');
+const web3 = new Web3 ( new Web3.providers.HttpProvider("http://localhost:8545"));
+
 
 //compiled contracts
 const compiledHousehold = require('../ethereum/build/Household.json');
@@ -58,11 +58,21 @@ class Agent{
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery){
-  
+        
+        
         for (i=1; i<historicData.length-1; i++){
-   
-            this.historicalDemand.push(new Array(historicData[i][0], historicData[i][1]));
-            this.historicalSupply.push(new Array(historicData[i][0], historicData[i][2]));
+            let currentDemand = {
+                time: historicData[i][0], 
+                demand: historicData[i][1]
+            }
+
+            let currentSupply = {
+                time: historicData[i][0], 
+                demand: historicData[i][2]
+            }
+            
+            this.historicalDemand.push(currentDemand);
+            this.historicalSupply.push(currentSupply);
         }
         this.baseElectValue = baseElectValue;
         this.baseElectValueBattery = baseElectValueBattery;
@@ -196,19 +206,22 @@ class Agent{
     }
 
     predictorRandom(timeRow){
+
         let timeInterval = 5;
         let randomArray = new Array();
 
         if( timeRow <= timeInterval){
             return this.historicalDemandTemp[timeRow];
         }
-        for(let i=timeRow-timeInterval; i < timeRow; i++){
+        for(let i = timeRow-timeInterval; i < timeRow; i++){
             randomArray.push(this.historicalDemandTemp[i]);
         }
+
         return randomArray[Math.floor(Math.random() * randomArray.length)];
     }
 
     predictorRational(timeRow){
+
         let timeInterval = 24; //check 24 hours before
         if( timeRow <= timeInterval){
             return this.historicalDemand[timeRow];
@@ -217,14 +230,16 @@ class Agent{
     }
 
     makeDemandPrediction(timeRowTarget){
+        let timeRow = this.timeRow;
+
         this.historicalDemandTemp = new Array();
-        for(let k=0; k<=this.timeRow; k++){
-            this.historicalDemandTemp.push(this.historicalDemand[k][1]);
+        for(let k = 0; k <= timeRow; k++){
+            this.historicalDemandTemp.push(this.historicalDemand[k].demand);
         }
         
         let arrayDemandPred = new Array();
         let j = 0;
-        for (let i=this.timeRow + 1; i<= timeRowTarget; i++){
+        for (let i= timeRow+ 1; i<= timeRowTarget; i++){
             this.predAvg = this.predictorAverage(i);
             this.predRand = this.predictorRandom(i);
             this.predRat = this.predictorRational(i);
@@ -235,7 +250,7 @@ class Agent{
         }
 
         let predictedDemand = new Array();
-        for (let x=this.timeRow; x= timeRowTarget; x++){
+        for (let x = timeRow; x <= timeRowTarget; x++){
             predictedDemand.push(this.historicalDemandTemp[x]);
         }
         return predictedDemand;
@@ -247,14 +262,14 @@ class Agent{
             //do something, not sure yet
         }
         else if( this.predAvg < this.historicalDemand[this.timeRow] || this.predAvg > this.historicalDemand[this.timeRow] ){
-            this.weightDemandAvg = this.weightDemandAvg * ( 1- this.learningRate);
+            this.weightDemandAvg = this.weightDemandAvg * ( 1 - this.learningRate);
         }
 
         if( this.predRand == this.historicalDemand[this.timeRow]){
             //do nothing supposedly
         }
         else if( this.predRand < this.historicalDemand[this.timeRow] || this.predRand > this.historicalDemand[this.timeRow]){
-            this.weightDemandRand = this.weightDemandRand * ( 1- this.learningRate);
+            this.weightDemandRand = this.weightDemandRand * ( 1 - this.learningRate);
         }
 
         if( this.predRat == this.historicalDemand[this.timeRow]){
