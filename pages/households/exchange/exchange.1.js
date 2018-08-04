@@ -29,7 +29,7 @@ class ExchangePage extends Component {
         };
     }
 
-    handleChange1 = (selectedOption) => {
+    handleChange = (selectedOption) => {
         this.setState({selectedOption});
     };
     
@@ -51,7 +51,8 @@ class ExchangePage extends Component {
         return (
         <Layout>
             <Menu compact style={{marginBottom: '10px'}} >
-                <Dropdown text='Buy/Sell' options={options} onChange={event =>
+                <Dropdown text='Buy/Sell' options={options} onChange={this.handleChange}
+                onChange={(event) =>
                 this.setState({ selectedOption: options.value })} simple item />
             </Menu>
             {this.buySellSelection()}

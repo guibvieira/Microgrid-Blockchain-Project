@@ -3,7 +3,8 @@ import { Form, Table, Button} from 'semantic-ui-react';
 
 class BidsRow extends Component{
     calcDate(){
-            let date = (new Date()).getTime();
+            let date = new Date(parseInt(this.props.bids.date));
+            date = date.toLocaleString();
             return date;
     }
     render(){
