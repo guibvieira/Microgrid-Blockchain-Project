@@ -10,7 +10,7 @@ import SubmitBidInput from '../../../components/SubmitBidInput';
 import SubmitSellInput from '../../../components/SubmitSellInput';
 
 class ExchangePage extends Component {
-    
+
     state = {
         errorMessage: '',
         loading: false,
@@ -82,21 +82,18 @@ class ExchangePage extends Component {
             />;
         })
     }
-    
-    handleChange = (selectedOption) => {
-        this.setState({selectedOption});
-    };
 
     onDropDownChange = (event, data) => {
         console.log('onDropDownChange', data);
-        this.setState({ selectedOption: data.options.value });
+        this.setState({ selectedOption: data.value });
+        console.log('current state', this.state.selectedOption);
     }
     
     renderInput() {
-        if(this.state.selectedOption === 1){
+        if(this.state.selectedOption == 1){
             return <SubmitBidInput address={this.props.address} />
         }
-        if(this.state.selectedOption === 2){
+        if(this.state.selectedOption == 2){
             return <SubmitSellInput address={this.props.address} />
         }
     }
@@ -108,18 +105,14 @@ class ExchangePage extends Component {
             { key: 1, text: 'Buy', value: 1},
             { key: 2, text: 'Sell', value: 2}
         ]
+
         return (
         <Layout>
             <Menu compact style={{marginBottom: '10px'}} >
                 <Dropdown text='Buy/Sell' options={options} 
                 onChange={this.onDropDownChange} simple item />
             </Menu>
-            {this.renderInput()}
-            {/* <h3>Submit Bid</h3>
-            <SubmitBidInput address={this.props.address} style={{marginBottom: '10px'}} />
-            <h3>Submit Ask</h3>
-            <SubmitSellInput address={this.props.address} /> */}
-            
+            {this.renderInput()}            
             <h3>Buy Order Book</h3>
             <Table>
                 <Header>
