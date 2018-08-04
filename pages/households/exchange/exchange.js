@@ -10,6 +10,7 @@ import SubmitBidInput from '../../../components/SubmitBidInput';
 import SubmitSellInput from '../../../components/SubmitSellInput';
 
 class ExchangePage extends Component {
+    
     state = {
         errorMessage: '',
         loading: false,
@@ -81,7 +82,7 @@ class ExchangePage extends Component {
             />;
         })
     }
-
+    
     handleChange = (selectedOption) => {
         this.setState({selectedOption});
     };

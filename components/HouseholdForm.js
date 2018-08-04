@@ -73,7 +73,7 @@ class HouseholdForm extends Component {
          <Button style={{ marginTop: '2px', marginBottom: '30px' }} loading={this.state.loading} primary>
            Create!
          </Button>
-       </Form>
+        </Form>
         );
     }
 }
