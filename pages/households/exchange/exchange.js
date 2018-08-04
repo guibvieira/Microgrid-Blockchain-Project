@@ -5,7 +5,7 @@ import AsksRow from '../../../components/AsksRow';
 import HouseholdContract from '../../..//ethereum/household';
 import web3 from '../../..//ethereum/web3';
 import exchange from '../../../ethereum/exchange';
-import { Dropdown, Menu, Table, Button } from 'semantic-ui-react';
+import { Dropdown, Menu, Table, Button, Grid } from 'semantic-ui-react';
 import SubmitBidInput from '../../../components/SubmitBidInput';
 import SubmitSellInput from '../../../components/SubmitSellInput';
 
@@ -108,47 +108,97 @@ class ExchangePage extends Component {
 
         return (
         <Layout>
-            <Menu compact style={{marginBottom: '10px'}} >
-                <Dropdown text='Buy/Sell' options={options} 
-                onChange={this.onDropDownChange} simple item />
-            </Menu>
-            {this.renderInput()}            
-            <h3>Buy Order Book</h3>
-            <Table>
-                <Header>
-                    <Row>
-                        <HeaderCell>ID</HeaderCell>
-                        <HeaderCell>From address</HeaderCell>
-                        <HeaderCell>Amount</HeaderCell>
-                        <HeaderCell>Price</HeaderCell>
-                        <HeaderCell>Date</HeaderCell>
-                    </Row>
-                </Header>
-                <Body>
-                    {this.renderBuyRows()} 
-                </Body>
-            </Table>
-            <div>There are {this.props.bidsCount} bids.</div>
-            <div>Buying Volume is {this.props.sumBids} W/h.</div>
-
-            <h3>Ask Order Book</h3>
-            <Table>
-                <Header>
-                    <Row>
-                        <HeaderCell>ID</HeaderCell>
-                        <HeaderCell>From address</HeaderCell>
-                        <HeaderCell>Amount</HeaderCell>
-                        <HeaderCell>Price</HeaderCell>
-                        <HeaderCell>Date</HeaderCell>
-                    </Row>
-                </Header>
-                <Body>
-                    {this.renderAskRows()} 
-                </Body>
-            </Table>
-            <div>There are {this.props.asksCount} asks.</div>
-            <div>Buying Volume is {this.props.sumAsks} W/h.</div>
+            <Grid>
+                <Grid.Row>
+                    <Grid.Column width={8}>GRAPH 1</Grid.Column>
+                    <Grid.Column width={8}>GRAPH 2</Grid.Column>
+                </Grid.Row>
+                <Grid.Row>
+                    <Grid.Column width={7}>
+                        <h3>Buy Order Book</h3>
+                        <Table>
+                            <Header>
+                                <Row>
+                                    <HeaderCell>ID</HeaderCell>
+                                    <HeaderCell>From address</HeaderCell>
+                                    <HeaderCell>Amount</HeaderCell>
+                                    <HeaderCell>Price</HeaderCell>
+                                    <HeaderCell>Date</HeaderCell>
+                                </Row>
+                            </Header>
+                            <Body>
+                                {this.renderBuyRows()} 
+                            </Body>
+                        </Table>
+                        <div>There are {this.props.bidsCount} bids.</div>
+                        <div>Buying Volume is {this.props.sumBids} W/h.</div>
+                        <h3>Ask Order Book</h3>
+                        <Table>
+                            <Header>
+                                <Row>
+                                    <HeaderCell>ID</HeaderCell>
+                                    <HeaderCell>From address</HeaderCell>
+                                    <HeaderCell>Amount</HeaderCell>
+                                    <HeaderCell>Price</HeaderCell>
+                                    <HeaderCell>Date</HeaderCell>
+                                </Row>
+                            </Header>
+                            <Body>
+                                {this.renderAskRows()} 
+                            </Body>
+                        </Table>
+                        <div>There are {this.props.asksCount} asks.</div>
+                        <div>Buying Volume is {this.props.sumAsks} W/h.</div>
+                    </Grid.Column>
+                    <Grid.Column width={3}>
+                        <Menu compact style={{marginBottom: '10px'}} >
+                            <Dropdown text='Buy/Sell' options={options}  
+                            onChange={this.onDropDownChange} simple item />
+                        </Menu>
+                        {this.renderInput()}  
+                    </Grid.Column>
+                    <Grid.Column width={6}>
+                    <h3>Buy Order Book</h3>
+                        <Table>
+                            <Header>
+                                <Row>
+                                    <HeaderCell>ID</HeaderCell>
+                                    <HeaderCell>From address</HeaderCell>
+                                    <HeaderCell>Amount</HeaderCell>
+                                    <HeaderCell>Price</HeaderCell>
+                                    <HeaderCell>Date</HeaderCell>
+                                </Row>
+                            </Header>
+                            <Body>
+                                {this.renderBuyRows()} 
+                            </Body>
+                        </Table>
+                        <div>There are {this.props.bidsCount} bids.</div>
+                        <div>Buying Volume is {this.props.sumBids} W/h.</div>
+                        <h3>Ask Order Book</h3>
+                        <Table>
+                            <Header>
+                                <Row>
+                                    <HeaderCell>ID</HeaderCell>
+                                    <HeaderCell>From address</HeaderCell>
+                                    <HeaderCell>Amount</HeaderCell>
+                                    <HeaderCell>Price</HeaderCell>
+                                    <HeaderCell>Date</HeaderCell>
+                                </Row>
+                            </Header>
+                            <Body>
+                                {this.renderAskRows()} 
+                            </Body>
+                        </Table>
+                        <div>There are {this.props.asksCount} asks.</div>
+                        <div>Buying Volume is {this.props.sumAsks} W/h.</div>
+                    </Grid.Column>
+                </Grid.Row>
+            </Grid>
             
+            
+            
+
         </Layout>
         ); 
     }
