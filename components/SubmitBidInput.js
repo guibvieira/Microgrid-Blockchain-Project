@@ -53,7 +53,7 @@ class SubmitBidInput extends Component {
           <Form onSubmit={this.submitBid} error={!!this.state.errorMessage}>
            <Form.Field>
              <label>Price (p/kWh)</label>
-             <Input
+             <Input 
              type='number'
              value={this.state.price}
              size='mini'

@@ -19,8 +19,6 @@ class HouseholdForm extends Component {
 
         this.setState( { errorMessage: '', loading: true});
 
-        console.log(this.state.loading);
-
         try {
             const accounts = await web3.eth.getAccounts();
             console.log('accounts', accounts);
@@ -29,7 +27,6 @@ class HouseholdForm extends Component {
                 gas: '1000000'
             });
             //still needs fixing
-            console.log('household address created', this.props.households);
             const household = Household(this.props.households[this.props.households.length - 1])
     
             await household.methods.setExchange(exchange.options.address).send({
@@ -47,7 +44,6 @@ class HouseholdForm extends Component {
 
     onInputChanged(event) {
         this.setState({ minimumContribution: event.target.value });
-        console.log(this.state);
     }
 
     render() {
