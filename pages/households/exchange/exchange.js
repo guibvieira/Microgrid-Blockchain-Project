@@ -10,10 +10,11 @@ import SubmitBidInput from '../../../components/SubmitBidInput';
 import SubmitSellInput from '../../../components/SubmitSellInput';
 
 class ExchangePage extends Component {
+    
     state = {
         errorMessage: '',
         loading: false,
-        selectedOption: '',
+        selectedOption: 1,
         buyVolume: '',
         askVolume: ''
     };
@@ -81,43 +82,25 @@ class ExchangePage extends Component {
             />;
         })
     }
-
-    handleChange1 = (selectedOption) => {
+    
+    handleChange = (selectedOption) => {
         this.setState({selectedOption});
     };
+
+    onDropDownChange = (event, data) => {
+        console.log('onDropDownChange', data);
+        this.setState({ selectedOption: data.options.value });
+    }
     
-    buySellSelection () {
-        if(this.state.selectedOption == 1){
+    renderInput() {
+        if(this.state.selectedOption === 1){
             return <SubmitBidInput address={this.props.address} />
         }
-        if(this.state.selectedOption == 2){
+        if(this.state.selectedOption === 2){
             return <SubmitSellInput address={this.props.address} />
         }
     }
 
-    // async calcVolume() {
-        
-    //     let asksCount = await exchange.methods.getAsksCount().call();
-
-    //     let bidsTemp = new Array();
-    //     let asksTemp = new Array();
-        
-    //     for(let i=0; i < this.props.bidsCount; i++){
-    //         let bid = await exchange.methods.getBid(i).call();
-    //         let ask = await exchange.methods.getAsk(i).call();
-    //         bidsTemp[i] = parseInt(bid['2'], 10);
-    //         asksTemp[i] = parseInt(ask['2'], 10);
-    //     }
-     
-    //     const sumBids = bids.reduce((a, b) => a + b, 0);
-    //     const sumAsks = asks.reduce((a,b) => a + b, 0);
-
-    //     this.setState({buyVolume: sumBids});
-    //     this.setState({askVolume: sumAsks});
-    //     return sumBids;
-    // }
-
-    
     render() {
         const {Header, Row, HeaderCell, Body } = Table;
 

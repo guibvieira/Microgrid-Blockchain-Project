@@ -21,14 +21,15 @@ class HouseholdForm extends Component {
 
         try {
             const accounts = await web3.eth.getAccounts();
-            console.log('accounts', accounts);
             await factory.methods.createHousehold('5000').send({
                 from: accounts[0],
                 gas: '1000000'
             });
-            //still needs fixing
-            const household = Household(this.props.households[this.props.households.length - 1])
-    
+        
+            const household = Household(this.props.households[this.props.households.length-1])
+            /*
+            //put a pop up to warn that second transaction will be to set up the exchange
+            */
             await household.methods.setExchange(exchange.options.address).send({
                 from: accounts[0],
                 gas: '100000'
@@ -37,9 +38,11 @@ class HouseholdForm extends Component {
             Router.replaceRoute('/');
         } catch (err) {
             this.setState({errorMessage: err.message})
+            console.log('catch',this.props);
         }
         
         this.setState({loading: false});
+
     }
 
     onInputChanged(event) {
