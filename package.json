@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "@zeit/next-sass": "^0.2.0",
+    "eslint-plugin-nodeca": "^1.0.3",
     "fs-extra": "^6.0.1",
     "ganache-cli": "^6.1.4",
     "mocha": "^5.2.0",

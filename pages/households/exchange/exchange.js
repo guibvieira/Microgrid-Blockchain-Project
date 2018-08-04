@@ -42,9 +42,6 @@ class ExchangePage extends Component {
      
         const sumBids = bidsTemp.reduce((a, b) => a + b, 0);
         const sumAsks = asksTemp.reduce((a,b) => a + b, 0);
-        console.log('sumbids', sumBids);
-        console.log('sumasks', sumAsks);
-
 
         const bids = await Promise.all(
             Array(parseInt(bidsCount)).fill().map((element, index) => {
@@ -195,24 +192,9 @@ class ExchangePage extends Component {
                     </Grid.Column>
                 </Grid.Row>
             </Grid>
-            
-            
-            
-
         </Layout>
         ); 
     }
 }
 
 export default ExchangePage;
-{/* <SubmitBidInput  address={this.props.address} /> */}
-
-{/* <div>
-                <select id="Buy/Sell" onChange={event => this.setState({selectedOption: event.target.value})} value={this.state.selectedOption}>
-                    <option value="Buy">Buy </option>
-                    <option value="Sell">Sell</option>
-                    </select>
-                    <p></p>
-                    <p>{this.state.value}</p>
-                    {this.buySellSelection}
-            </div> */}
