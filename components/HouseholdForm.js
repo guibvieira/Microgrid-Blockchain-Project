@@ -19,24 +19,17 @@ class HouseholdForm extends Component {
 
         this.setState( { errorMessage: '', loading: true});
 
-        console.log(this.state.loading);
-
         try {
             const accounts = await web3.eth.getAccounts();
-            console.log('accounts', accounts);
             await factory.methods.createHousehold('5000').send({
                 from: accounts[0],
                 gas: '1000000'
             });
-
-            let households = this.props.households;
-            // console.log('im here');
-            // const households = await factory.methods.getDeployedHouseholds().call();
-            console.log('household address created'. households);
-            console.log('household address created'. households[households.length - 1]);
-            const household = Household(households[households.length - 1])
-            
-    
+        
+            const household = Household(this.props.households[this.props.households.length-1])
+            /*
+            //put a pop up to warn that second transaction will be to set up the exchange
+            */
             await household.methods.setExchange(exchange.options.address).send({
                 from: accounts[0],
                 gas: '100000'
@@ -45,14 +38,15 @@ class HouseholdForm extends Component {
             Router.replaceRoute('/');
         } catch (err) {
             this.setState({errorMessage: err.message})
+            console.log('catch',this.props);
         }
         
         this.setState({loading: false});
+
     }
 
     onInputChanged(event) {
         this.setState({ minimumContribution: event.target.value });
-        console.log(this.state);
     }
 
     render() {
@@ -74,7 +68,7 @@ class HouseholdForm extends Component {
          <Button style={{ marginTop: '2px', marginBottom: '30px' }} loading={this.state.loading} primary>
            Create!
          </Button>
-       </Form>
+        </Form>
         );
     }
 }
