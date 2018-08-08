@@ -8,12 +8,12 @@ axios.get('https://www.bmreports.com/bmrs/?q=ajax/alldata/DERSYSDATA/settlementD
     //data = response;
     try {
         data = CircularJSON.stringify(response);
-    //console.log(data);
+        console.log(data);
    
         const fields = ['settlementDate','Period','SSP','SBP','BD','PDC','RSP','NIV','SPA','BPA','RP','RPRV','OV','BV','TOV','TBV','ASV','ABV','TASV','TABV'];
         const opts = { fields };
-        const parser = new Json2csvParser(data);
-        const csv = parser.parse(response);
+        const parser = new Json2csvParser();
+        const csv = parser.parse(data);
         console.log(csv);
       } catch (err) {
         console.error(err);

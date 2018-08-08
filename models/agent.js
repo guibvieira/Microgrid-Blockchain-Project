@@ -44,6 +44,7 @@ class Agent{
         this.householdID = 0;
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
+        this.nationalGridPrice = 0.1437;
 
         //predictor vars
         this.learningRate = 0.1;
@@ -202,7 +203,7 @@ class Agent{
         for(let i=timeRow-timeInterval; i < timeRow; i++){
             averageArray.push(this.historicalDemandTemp[i]);
         }
-        return averageArray.reduce((a, b) => a + b, 0);
+        return averageArray.reduce((a, b) => a + b, 0)/timeInterval;
     }
 
     predictorRandom(timeRow){

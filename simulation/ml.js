@@ -1,77 +1,38 @@
-const ml = require('ml-regression');
-const readCSV = require('./readFile.js');
-const SLR = ml.SLR; // Simple Linear Regression
+var FeedForwardNeuralNetworks = require('ml-fnn');
+const readCSV = require('./readFile');
 
-var fs = require('fs');
-let csv = require('fast-csv');
-let parse = require('csv-parse');
-
-const inputFile = '../data/metadata-LCOE.csv'; // Data
-let csvData = [], // parsed Data
-    X = [], // Input
-    y = []; // Output
-
-let regressionModel;
-
-const readline = require('readline'); // For user prompt to allow predictions
-
-const rl = readline.createInterface({
-    input: process.stdin, 
-    output: process.stdout
-});
-
-function performRegression(X, y) {
-    console.log('x',X);
-    regressionModel = new SLR(X, y); // Train the model on training data
-    console.log(regressionModel.toString(3));
-    predictOutput();
-}
-
-function dressData() {
-    /**
-     * One row of the data object looks like:
-     * {
-     *   TV: "10",
-     *   Radio: "100",
-     *   Newspaper: "20",
-     *   "Sales": "1000"
-     * }
-     *
-     * Hence, while adding the data points,
-     * we need to parse the String value as a Float.
-     */
-
-    for (i=0; i<csvData.length; i++){
-        X.push(f(csvData[i][0]));
-        y.push(f(csvData[i][1]));
-
-    }
-    console.log('X', X);
-        console.log('Y', y);
-    return {X, y};
-}
-
-function f(s) {
-    return parseFloat(s);
-}
-
-function predictOutput() {
-    rl.question('Enter input X for prediction (Press CTRL+C to exit) : ', (answer) => {
-        console.log(`At X = ${answer}, y =  ${regressionModel.predict(parseFloat(answer))}`);
-        predictOutput();
-    });
-}
 
 async function loadData(inputFile){
     let resultSet = await readCSV(inputFile);
     return resultSet;
 }
-
 async function init(){
-    csvData = await loadData(inputFile);
-    //console.log('csv data', csvData);
-    let {X, y} = dressData();
-    performRegression(X, y);
-}
+    inputFile = '../data/household_26.csv';
+    householdData = await loadData(inputFile);
 
+    let X_train = new Array();
+    let X_test = new Array();
+    //prepare the data
+    for (i=0; i<householdData.length; i++){
+        X_train.push(new Array(householdData[i][0], householdData[i][4], householdData[i][5], householdData[i][6], householdData[i][7], householdData[i][8],householdData[i][9],householdData[i][10],householdData[i][11], householdData[i][12], householdData[i][13],householdData[i][14],householdData[i][15] )  );
+        X_test.push( householdData[i][2] );
+    }
+    options = {
+        hiddenLayers: [3],
+        iterations: 30,
+        learningRate: 0.01,
+        activation: 'relu'
+    }
+    
+    /* Create a neural network with 4 layers (2 hidden layers) */
+    let network = new FeedForwardNeuralNetworks(options)
+
+    network.train(X_train, X_test);
+    let result= network.predict(X_train[50]);
+
+
+    /* Run */
+    console.log('neural network result', result);
+    console.log('value of gen in dataset', X_test[50]);
+}
 init();

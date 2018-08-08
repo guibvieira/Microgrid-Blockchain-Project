@@ -4,7 +4,8 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
-const Agent = require('../models/agent.js');
+const Agent = require('../models/agentPred.js');
+const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
 
 //compiled contracts
 const factory = require('../ethereum/factory');
@@ -93,38 +94,145 @@ async function init() {
     let { metaData, householdHistoricData } = await getFiles();
 
     let metaDataBattery = metaData.slice(0, Math.floor(metaData.length/2));
-    let metaDataNoBattery = metaData.slice( Math.floor(metaData.length)/2 , metaData.length-1 );
+    //let metaDataNoBattery = metaData.slice( Math.floor(metaData.length)/2 , metaData.length-1 );
 
     let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length)/2 );
-    let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
+    //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
 
     let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000);
-    let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0);
+    //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0);
 
     // console.log('agents battery object', agentsBattery);
     // console.log('agents no battery object', agentsNoBattery);
-
-    //start simulation
+    let simDuration = 365;    //start simulation
+    let weightsHistory = new Array();
+    let errorPredictions = new Array();
+    let timeArray= new Array();
+    let errorAggPrediction = new Array();
     
-    // for (i= 0; i < 15; i++){
+    for (i= 0; i < simDuration; i++){
+        timeArray.push(i);
+        
 
-    //     for (j = 0; j < agentsBattery.length; j++){
-    //         //setTimeStepInAgent
+        for (j = 0; j < agentsBattery.length/4; j++){
+            //setTimeStepInAgent
 
-    //         //access agent to setTime
-    //         agentsBattery[j][1].setCurrentTime(i);
+            //access agent to setTime
+            agentsBattery[j].agent.setCurrentTime(i);
+            //correctWeights()
+            let {averageErrorPred, randomErrorPred, rationalErrorPred } = agentsBattery[j].agent.correctWeights();
+            let newErrorPred = {
+                id: agentsBattery[j].id,
+                averageErrorPred: averageErrorPred,
+                randomErrorPred: randomErrorPred,
+                rationalErrorPred: rationalErrorPred
+            }
+            errorPredictions.push(newErrorPred);
 
-    //         //makePredicitonDemand() --> will save prediction within class
-    //         let predictionCheck = agentsBattery[j][1].makeDemandPrediction(i+10);
+            let newWeightsHistory = {
+                id: agentsBattery[j].id,
+                averageWeights: agentsBattery[j].agent.weightDemandAvg,
+                randomWeights: agentsBattery[j].agent.weightDemandRand,
+                rationalWeights: agentsBattery[j].agent.weightDemandRat
+            }
+            weightsHistory.push(newWeightsHistory);
 
-    //         console.log('prediction check', predictionCheck);
-    //         //makePredictionSupply() --> will save prediction within class
+            //makePredicitonDemand() --> will save prediction within class
+            let predictionAggregated = agentsBattery[j].agent.makeDemandPrediction();
 
-    //         //correctWeights()
+            let actualValue = agentsBattery[j].agent.historicalDemand[i].demand;
+            if(agentsBattery[j].id == 2337){
+                errorAggPrediction.push(Math.abs(predictionAggregated-actualValue));
+            }
+            
+            //makePredictionSupply() --> will save prediction within class
 
-    //         //runAgentLogicDecision()
+            
+
+            //runAgentLogicDecision()
+        }
+    }
+
+    let idFind = 2337;
+    let weightsHistoryFinal = new Array();
+    let errorPredictionsFinal = new Array();
+    let errorAverage = new Array();
+    let errorRandom = new Array();
+    let errorRational = new Array();
+
+    for(let i=0; i< weightsHistory.length; i++) {
+        if(weightsHistory[i].id == idFind){
+            weightsHistoryFinal.push(new Array(weightsHistory[i].averageWeights, weightsHistory[i].randomWeights, weightsHistory[i].rationalWeights));
+        }
+    }
+
+    for(let i=0; i< errorPredictions.length; i++) {
+        if(errorPredictions[i].id == idFind){
+            errorPredictionsFinal.push(new Array(errorPredictions[i].averageErrorPred, errorPredictions[i].randomErrorPred, errorPredictions[i].rationalErrorPred))
+            errorAverage.push(errorPredictions[i].averageErrorPred);
+            errorRandom.push(errorPredictions[i].randomErrorPred);
+            errorRational.push(errorPredictions[i].rationalErrorPred);
+        }
+    }
+    console.log('error average prediction', errorAggPrediction);
+    //for error in prediction
+    var trace1 = {
+        x: timeArray,
+        y: errorAggPrediction,
+        name: "yaxis data",
+        type: "scatter"
+    }
+    var data = [trace1];
+
+
+    var graphOptions = {filename: "prediction error", fileopt: "overwrite"};
+    plotly.plot(data, graphOptions, function (err, msg) {
+        console.log(msg);
+    });
+    //for weight error tracking
+    // var trace1 = {
+    //     x: timeArray,
+    //     y: errorAverage,
+    //     name: "yaxis data",
+    //     type: "scatter"
+    //   };
+    //   var trace2 = {
+    //     x: timeArray,
+    //     y: errorRandom,
+    //     name: "yaxis2 data",
+    //     yaxis: "y2",
+    //     type: "scatter"
+    //   };
+    //   var trace3 = {
+    //     x: timeArray,
+    //     y: errorRational,
+    //     name: "yaxis2 data",
+    //     yaxis: "y3",
+    //     type: "scatter"
+    //   };
+    //   var data = [trace1, trace2, trace3];
+    //   var layout = {
+    //     title: "Predictor Errors over Time",
+    //     yaxis: {title: "Average predictor"},
+    //     yaxis2: {
+    //       title: "Random predictor",
+    //       titlefont: {color: "rgb(148, 103, 189)"},
+    //       tickfont: {color: "rgb(148, 103, 189)"},
+    //       overlaying: "y",
+    //       side: "right"
+    //     },
+    //     yaxis3: {
+    //         title: "Rational predictor",
+    //         titlefont: {color: "rgb(148, 200, 189)"},
+    //         tickfont: {color: "rgb(148, 200, 189)"},
+    //         overlaying: "y",
+    //         side: "right"
     //     }
-    // }
+    //   };
+    //   var graphOptions = {layout: layout, filename: "Predictor Errors over Time", fileopt: "overwrite"};
+    //   plotly.plot(data, graphOptions, function (err, msg) {
+    //       console.log(msg);
+    //   });
 };
 
 init();
