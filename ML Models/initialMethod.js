@@ -27,7 +27,7 @@ async function init(){
     inputFile = '../data/household_26.csv';
     householdData = await loadData(inputFile);
 
-    //console.log('household data', householdData)
+    console.log('household data', householdData)
 
     var X_train = new Array();
     var X_test = new Array();

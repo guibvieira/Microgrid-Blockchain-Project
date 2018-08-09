@@ -4,7 +4,7 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
-const Agent = require('../models/agentPred.js');
+const Agent = require('../models/agentPred1.js');
 const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
 
 //compiled contracts
@@ -26,6 +26,7 @@ let agentsBattery = new Array();
 
 async function loadData(inputFile){
     let resultSet = await readCSV(inputFile);
+    //console.log('resultset', resultSet);
     return resultSet;
 }
 
@@ -41,11 +42,13 @@ async function getFiles() {
     let metaData= await loadData(inputFile);
 
     metaData = deleteRow(metaData, 0);// remove header of file
-
+    //console.log('metadata', metaData);
     for (i=0; i<metaData.length; i++){
             id.push( metaData[i][0] );
+            //console.log('id', metaData[i][0]);
             baseValue.push( metaData[i][2] );
             baseValueBattery.push( metaData[i][3] );
+            //console.log(`trying to find: ../data/household_${id[i]}.csv`);
             householdFiles.push(`../data/household_${id[i]}.csv`); // `householdFile
     }
 
@@ -56,7 +59,7 @@ async function getFiles() {
     return { metaData, householdHistoricData};
 }
 
-async function createAgents(metaData, householdHistoricData, batteryCapacity) {
+async function createAgents(metaData, householdHistoricData, batteryCapacity, batteryBool) {
     let agents = new Array();
 
     try {
@@ -64,7 +67,7 @@ async function createAgents(metaData, householdHistoricData, batteryCapacity) {
     for (const item in metaData){
 
         //creation of agents and feeding the data in
-      agent = new Agent(batteryCapacity); //no battery capacity passed
+      agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
 
       agentAccount = await agent.getAccount(item);
     
@@ -99,7 +102,7 @@ async function init() {
     let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length)/2 );
     //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
 
-    let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000);
+    let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000, true);
     //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0);
 
     // console.log('agents battery object', agentsBattery);
@@ -119,31 +122,33 @@ async function init() {
 
             //access agent to setTime
             agentsBattery[j].agent.setCurrentTime(i);
-            //correctWeights()
-            let {averageErrorPred, randomErrorPred, rationalErrorPred } = agentsBattery[j].agent.correctWeights();
-            let newErrorPred = {
-                id: agentsBattery[j].id,
-                averageErrorPred: averageErrorPred,
-                randomErrorPred: randomErrorPred,
-                rationalErrorPred: rationalErrorPred
-            }
-            errorPredictions.push(newErrorPred);
+            let test = agentsBattery[j].agent.formulatePrice();
+            console.log('test price', test);
+            // let {averageErrorPred, randomErrorPred, rationalErrorPred } = agentsBattery[j].agent.correctWeights();
+            // let newErrorPred = {
+            //     id: agentsBattery[j].id,
+            //     averageErrorPred: averageErrorPred,
+            //     randomErrorPred: randomErrorPred,
+            //     rationalErrorPred: rationalErrorPred
+            // }
+            // errorPredictions.push(newErrorPred);
 
-            let newWeightsHistory = {
-                id: agentsBattery[j].id,
-                averageWeights: agentsBattery[j].agent.weightDemandAvg,
-                randomWeights: agentsBattery[j].agent.weightDemandRand,
-                rationalWeights: agentsBattery[j].agent.weightDemandRat
-            }
-            weightsHistory.push(newWeightsHistory);
+            // let newWeightsHistory = {
+            //     id: agentsBattery[j].id,
+            //     averageWeights: agentsBattery[j].agent.weightDemandAvg,
+            //     randomWeights: agentsBattery[j].agent.weightDemandRand,
+            //     rationalWeights: agentsBattery[j].agent.weightDemandRat
+            // }
+            // weightsHistory.push(newWeightsHistory);
 
-            //makePredicitonDemand() --> will save prediction within class
-            let predictionAggregated = agentsBattery[j].agent.makeDemandPrediction();
+            // //makePredicitonDemand() --> will save prediction within class
+            // let predictionAggregated = agentsBattery[j].agent.makeDemandPrediction();
 
-            let actualValue = agentsBattery[j].agent.historicalDemand[i].demand;
-            if(agentsBattery[j].id == 2337){
-                errorAggPrediction.push(Math.abs(predictionAggregated-actualValue));
-            }
+            // let actualValue = agentsBattery[j].agent.historicalDemand[i].demand;
+            // if(agentsBattery[j].id == 2337){
+            //     let error = Math.abs(predictionAggregated-actualValue);
+            //     errorAggPrediction.push((error/actualValue)*100);
+            // }
             
             //makePredictionSupply() --> will save prediction within class
 
@@ -153,42 +158,64 @@ async function init() {
         }
     }
 
-    let idFind = 2337;
-    let weightsHistoryFinal = new Array();
-    let errorPredictionsFinal = new Array();
-    let errorAverage = new Array();
-    let errorRandom = new Array();
-    let errorRational = new Array();
+    // let idFind = 2337;
+    // let weightsHistoryFinal = new Array();
+    // let errorPredictionsFinal = new Array();
+    // let errorAverage = new Array();
+    // let errorRandom = new Array();
+    // let errorRational = new Array();
 
-    for(let i=0; i< weightsHistory.length; i++) {
-        if(weightsHistory[i].id == idFind){
-            weightsHistoryFinal.push(new Array(weightsHistory[i].averageWeights, weightsHistory[i].randomWeights, weightsHistory[i].rationalWeights));
-        }
-    }
+    // for(let i=0; i< weightsHistory.length; i++) {
+    //     if(weightsHistory[i].id == idFind){
+    //         weightsHistoryFinal.push(new Array(weightsHistory[i].averageWeights, weightsHistory[i].randomWeights, weightsHistory[i].rationalWeights));
+    //     }
+    // }
 
-    for(let i=0; i< errorPredictions.length; i++) {
-        if(errorPredictions[i].id == idFind){
-            errorPredictionsFinal.push(new Array(errorPredictions[i].averageErrorPred, errorPredictions[i].randomErrorPred, errorPredictions[i].rationalErrorPred))
-            errorAverage.push(errorPredictions[i].averageErrorPred);
-            errorRandom.push(errorPredictions[i].randomErrorPred);
-            errorRational.push(errorPredictions[i].rationalErrorPred);
-        }
-    }
-    console.log('error average prediction', errorAggPrediction);
-    //for error in prediction
-    var trace1 = {
-        x: timeArray,
-        y: errorAggPrediction,
-        name: "yaxis data",
-        type: "scatter"
-    }
-    var data = [trace1];
+    // for(let i=0; i< errorPredictions.length; i++) {
+    //     if(errorPredictions[i].id == idFind){
+    //         errorPredictionsFinal.push(new Array(errorPredictions[i].averageErrorPred, errorPredictions[i].randomErrorPred, errorPredictions[i].rationalErrorPred))
+    //         errorAverage.push(errorPredictions[i].averageErrorPred);
+    //         errorRandom.push(errorPredictions[i].randomErrorPred);
+    //         errorRational.push(errorPredictions[i].rationalErrorPred);
+    //     }
+    // }
+    // console.log('error average prediction', errorAggPrediction);
+    // //for error in prediction
+    // var trace1 = {
+    //     x: timeArray,
+    //     y: errorAggPrediction,
+    //     name: "yaxis data",
+    //     type: "scatter"
+    // }
+    // var data = [trace1];
+    // var layout = {
+    //     title: '1 Hour Ahead Prediction Error(%)',
+    //     xaxis: {
+    //       title: 'Time',
+    //       titlefont: {
+    //         family: 'Courier New, monospace',
+    //         size: 18,
+    //         color: '#7f7f7f'
+    //       }
+    //     },
+    //     yaxis: {
+    //       title: 'Percentage (%)',
+    //       titlefont: {
+    //         family: 'Courier New, monospace',
+    //         size: 18,
+    //         color: '#7f7f7f'
+    //       }
+    //     }
+    // };
+
+    // var graphOptions = {layout: layout, filename: "prediction error", fileopt: "overwrite"};
+    // plotly.plot(data, graphOptions, function (err, msg) {
+    //     console.log(msg);
+    // });
 
 
-    var graphOptions = {filename: "prediction error", fileopt: "overwrite"};
-    plotly.plot(data, graphOptions, function (err, msg) {
-        console.log(msg);
-    });
+
+    
     //for weight error tracking
     // var trace1 = {
     //     x: timeArray,

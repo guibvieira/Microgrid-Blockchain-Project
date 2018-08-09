@@ -5,7 +5,7 @@ const ganache = require('ganache-cli');
 // const web3 = new Web3(ganache.provider());
 const web3 = require('../ethereum/web3.js');
 //probably same as web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
-const Agent = require('../models/agent.js');
+const Agent = require('../models/agentSingle-Bid.js');
 const readCSV = require('../Simulation/readFile.js');
 
 //compiled contracts
@@ -49,16 +49,16 @@ describe('Agents', () => {
     });
 
     it('can charge and discharge an existing Contract of Agent', async () =>{
-        let preChargeAmount = await agent.household.methods.amountOfCharge().call();
-
+        let preDischargeAmount = await agent.household.methods.amountOfCharge().call();
+        await agent.dischargeContract(1000);
+        let postDischargeAmount = await agent.household.methods.amountOfCharge().call();
         await agent.chargeContract(1000);
 
         let postChargeAmount =  await agent.household.methods.amountOfCharge().call();
-        await agent.dischargeContract(2000);
-        let postDischargeAmount = await agent.household.methods.amountOfCharge().call();
+        
 
-        assert(postChargeAmount-1000, preChargeAmount);
-        assert(postDischargeAmount+2000, postChargeAmount);
+        assert(preDischargeAmount-1000, postDischargeAmount);
+        assert(postDischargeAmount+1000, postChargeAmount);
     });
 
     it('can place a Buy and a Sell', async() =>{
@@ -72,20 +72,6 @@ describe('Agents', () => {
         // console.log(ask);
         assert(bid);
         assert(ask);
-        //attempt to get an object back with indexes that are labelled e.g. owner, price, amount, timestamp
-        //let bidsCount = await exchange.methods.getBidsCount().call();
-        // let asksCount = await exchange.methods.getAsksCount().call();
-        // const bid = await Promise.all(
-        //     Array(parseInt(bidsCount)).fill().map((element, index) => {
-        //         return exchange.methods.getBids(index).call();
-        //     })
-        // );
-
-        // const ask = await Promise.all(
-        //     Array(parseInt(asksCount)).fill().map((element, index) => {
-        //         return exchange.methods.getAsks(index).call();
-        //     })
-        // );
     });
 
     it('can acquire the total amount of demand and supply off the exchange', async()=>{
@@ -130,14 +116,12 @@ describe('Agents', () => {
 
     it('can deploy and pass historical data to each agent', async () =>{
         let householdHistoricData = new Array();
-        let householdHistoricData2 = new Array();
+        let metaData = new Array();
         let inputFile = 'data/metadata-LCOE.csv';
         let id = new Array();
         let baseValue = new Array();
         let baseValueBattery = new Array();
         let householdFiles = new Array();
-        let agentsNoBattery = new Array();
-        let agentsBattery = new Array();
 
 
     async function loadData(inputFile){
@@ -145,34 +129,28 @@ describe('Agents', () => {
         return resultSet;
     }
 
-    async function createAgents(metaData, householdHistoricData){
+    async function createAgents(metaData, householdHistoricData, batteryCapacity, batteryBool){
         //console.log('this is meta data: ', metaData[0]);
         
-        for (i=0; i<23; i++){
+        for (i=0; i<metaData.length/2; i++){
                 console.log(i);            
         
                 //creation of agents and feeding the data in
-                agent = new Agent(0); //no battery capacity passed
+                agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
                 agentAccount = await agent.getAccount(i);
                 //console.log('agents account', agentAccount);
                 household = await agent.deployContract();
                 //console.log('household contract', household);
-                console.log('this is household data:', householdHistoricData[0]);
-                await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i]);
-                agentsNoBattery.push( new Array(id, agent));
-        }
-    
-        //create half of the households with battery Capacity
-        for (i=23; i<46; i++){
-                //creation of agents and feeding the data in
-            agent = new Agent(12000); //tesla powerwall
-            agentAccount = await agent.getAccount(i);
-            household = await agent.deployContract();
-            await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i]);
-            agentsBattery.push(new Array(id, agent));
-           
-        }
-        return { agentsBattery, agentsNoBattery };
+                const awaitResults = await agent.loadSmartMeterData(householdHistoricData[i], baseValue[i], baseValueBattery[i], id [i]);
+                let newAgent = {
+                    id: id [i],
+                    agent,
+                    agentAccount
+                }
+                agents.push(newAgent);
+        }   
+
+        return agents;
     }
 
     async function getFiles() {
@@ -189,54 +167,47 @@ describe('Agents', () => {
         for (const file of householdFiles){
             householdHistoricData.push( await loadData(file));
         }
-        //console.log(results);
-       return { householdHistoricData, metaData};
+        const responses = await Promise.all(householdHistoricData);
+        return { metaData, householdHistoricData};
     }
-    fileResults = await getFiles();
-    metaData = fileResults.metaData;
-    householdHistoricData = fileResults.householdHistoricData;
+    let { metaDataFinal, householdHistoricDataFinal} = await getFiles();
     
-    results = await createAgents(metaData, householdHistoricData);
-    console.log(results.agentsBattery);
+    //let metaDataBattery = metaData.slice(0, Math.floor(metaData.length/2));
+    let metaDataNoBattery = metaData.slice( Math.floor(metaDataFinal.length)/2 , metaDataFinal.length-1 );
+
+    //let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length)/2 );
+    let householdDataNoBattery = householdHistoricDataFinal.slice(Math.floor(householdHistoricDataFinal.length)/2, householdHistoricDataFinal.length-1);
+
+    //let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000, true);
+    let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
     
-    //metaData= await loadData(inputFile);
-    //console.log(metaData.length/2);
-    //console.log('logging results household 26', metaData);
-    //create half the households without any battery Capacity
-    // for (i=1; i<23; i++){
-    //     console.log(i);
-    //     // id = metaData[i][0];
-    //     // baseValue = metaData[i][2];
-    //     // baseValueBattery = metaData[i][3];
-    //     // householdFile = `./data/household_${id}.csv`;
+    let simDuration = householdHistoricDataFinal[0].length;    //start simulation
+    let timeArray= new Array();
+    
+    for (i= 0; i < simDuration; i++){
+        timeArray.push(i);
+        console.log('time', i);
         
-    //    // householdHistoricData = await loadData(householdFile);
 
-    //     //creation of agents and feeding the data in
-    //     agent = new Agent(0); //no battery capacity passed
-    //     agentAccount = await agent.getAccount(i);
-    //     household = await agent.deployContract();
-    //     //await agent.loadSmartMeterData(householdHistoricData, baseValue, baseValueBattery);
-    //     agentsNoBattery.push( new Array(agent));
-    // }
+        for (j = 0; j < agentsNoBattery.length/4; j++){
+
+            agentsNoBattery[j].agent.setCurrentTime(i);
+            agentsNoBattery[j].agent.purchaseLogic();
+
+        }
+
+        let { bids, asks } = await getExchangeBids();
+        if (bids.length > 0  || asks.length  > 0 ){        
+            let intersection = calculateIntersection(bids, asks);
+            console.log('intersection', intersection); //returns two values, first is the amount it intersects at , second the price
+            //populate every agent with the closing price for this time step
+            for (j = 0; j < agentsNoBattery.length/4; j++){
+
+                agentsNoBattery[j].agent.historicalPrices[i] = intersection[1];
     
-    //create half of the households with battery Capacity
-    // for (i=metaData.length/2; i<metaData.length; i++){
-    //     id = metaData[i][0];
-    //     baseValue = metaData[i][2];
-    //     baseValueBattery = metaData[i][3];
-    //     householdFile = `./data/household_${id}.csv`;
-        
-    //     householdVar = await loadData(householdFile);
-
-    //     //creation of agents and feeding the data in
-    //     agent = new Agent(12000); //tesla powerwall
-    //     agentAccount = await agent.getAccount(i);
-    //     household = await agent.deployContract();
-    //     await agent.loadSmartMeterData(householdHistoricData, baseValue, baseValueBattery);
-    //     agentsBattery.push(new Array(id, agent));
-
-    // }
+            }
+        }
+    }
     });
 
 

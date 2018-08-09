@@ -11,7 +11,6 @@ async function readCSV (inputFile){
         .fromPath(inputFile)
         .on("data", function(data){
             csvData.push(data);
-            //console.log(data);
         })
         .on("end", function(){
             resolve(csvData);

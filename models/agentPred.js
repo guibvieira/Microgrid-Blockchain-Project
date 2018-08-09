@@ -206,10 +206,10 @@ class Agent{
             return this.historicalDemand[timeRow].demand;
         }
         for(let i= timeRow-timeInterval; i < timeRow; i++){
-            console.log('historical demand point', this.historicalDemand[i].demand);
+            //console.log('historical demand point', this.historicalDemand[i].demand);
             averageArray.push(this.historicalDemand[i].demand);
         }
-        console.log('average array', averageArray);
+        //console.log('average array', averageArray);
         return averageArray.reduce((a, b) => a + b, 0)/timeInterval;
     }
 
@@ -239,15 +239,11 @@ class Agent{
 
     makeDemandPrediction(){
         
-        this.predAvg = this.predictorAverage();
+        this.predAvg = + parseFloat(this.predictorAverage()).toFixed(3);
         this.predRand = this.predictorRandom();
         this.predRat = this.predictorRational();
-        console.log('predAvg', this.predAvg);
-        console.log('predRand', this.predRand);
-        console.log('predRat', this.predRat);
         let sumWeights = this.weightDemandAvg + this.weightDemandRand + this.weightDemandRat;
         this.predDemand = ((this.weightDemandAvg * this.predAvg + this.weightDemandRand * this.predRand + this.weightDemandRat * this.predRat)/sumWeights);
-        console.log('sum weights', sumWeights);
         return this.predDemand;
     }
 
@@ -255,19 +251,27 @@ class Agent{
         let averageErrorPred = 0;
         let randomErrorPred = 0;
         let rationalErrorPred = 0;
-        if( this.predAvg < this.historicalDemand[this.timeRow].demand || this.predAvg > this.historicalDemand[this.timeRow].demand ){
+        let toleranceLower = 0.99;
+        let toleranceUpper = 1.01;
+        if( this.predAvg < toleranceLower * this.historicalDemand[this.timeRow].demand || this.predAvg > toleranceUpper * this.historicalDemand[this.timeRow].demand ){
             this.weightDemandAvg = this.weightDemandAvg * ( 1 - this.learningRate);
             averageErrorPred = Math.abs(this.historicalDemand[this.timeRow].demand - this.predAvg);
+            console.log('precited average', this.predAvg);
+            console.log('historical demand', this.historicalDemand[this.timeRow].demand);
         }
 
-        if( this.predRand < this.historicalDemand[this.timeRow].demand || this.predRand > this.historicalDemand[this.timeRow].demand){
+        if( this.predRand < toleranceLower * this.historicalDemand[this.timeRow].demand || this.predRand > toleranceUpper * this.historicalDemand[this.timeRow].demand){
             this.weightDemandRand = this.weightDemandRand * ( 1 - this.learningRate);
             randomErrorPred = Math.abs(this.historicalDemand[this.timeRow].demand - this.predRand);
+            console.log('precited average', this.predRand);
+            console.log('historical demand', this.historicalDemand[this.timeRow].demand);
         }
 
-        if( this.predRat < this.historicalDemand[this.timeRow].demand || this.predRat > this.historicalDemand[this.timeRow].demand){
+        if( this.predRat < toleranceLower * this.historicalDemand[this.timeRow].demand || this.predRat >toleranceUpper * this.historicalDemand[this.timeRow].demand){
             this.weightDemandRat = this.weightDemandRat * ( 1- this.learningRate);
             rationalErrorPred = Math.abs(this.historicalDemand[this.timeRow].demand - this.predRat);
+            console.log('precited average', this.predRat);
+            console.log('historical demand', this.historicalDemand[this.timeRow].demand);
         }
 
         return { averageErrorPred, randomErrorPred, rationalErrorPred };

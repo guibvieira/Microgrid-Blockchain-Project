@@ -37,6 +37,7 @@
     "next": "^4.1.4",
     "next-routes": "^1.4.2",
     "node-sass": "^4.9.2",
+    "normal-distribution": "0.0.5",
     "papaparse": "^4.5.1",
     "plotly": "^1.0.6",
     "plotly.js-dist": "^1.39.4",
