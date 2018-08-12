@@ -37,43 +37,42 @@ function calculateIntersection(array1, array2){
     
     let array1DescendingPrice = [];
     let array2AscendingPrice = [];
-    array1DescendingPrice = array1.sort(compareSecondColumnDescending); // bids
-    array2AscendingPrice = array2.sort(compareSecondColumnAscending); //asks
+    array1DescendingPrice = array1.sort(sortAscending); // bids
+    array2AscendingPrice = array2.sort(sortAscending); //asks
+    let x11 = array1DescendingPrice[0].amount;
+    let y11 = array1DescendingPrice[0].price;
+    let x12 = array1DescendingPrice[array1DescendingPrice.length-1].amount;
+    let y12 = array1DescendingPrice[array1DescendingPrice.length-1].price;
 
-    let x11 = array1DescendingPrice[0][0];
-    let y11 = array1DescendingPrice[0][1];
-    let x12 = array1DescendingPrice[array1DescendingPrice.length-1][0];
-    let y12 = array1DescendingPrice[array1DescendingPrice.length-1][1];
-
-    let x21 = array2AscendingPrice[0][0];
-    let y21 = array2AscendingPrice[0][1];
-    let x22 = array2AscendingPrice[array2AscendingPrice.length-1][0];
-    let y22 = array2AscendingPrice[array2AscendingPrice.length-1][1];
+    let x21 = array2AscendingPrice[0].amount;
+    let y21 = array2AscendingPrice[0].amount;
+    let x22 = array2AscendingPrice[array2AscendingPrice.length-1].amount;
+    let y22 = array2AscendingPrice[array2AscendingPrice.length-1].price;
 
     let intersection = getIntersection(x11, y11, x12, y12, x21, y21, x22, y22);
 
     return intersection;
 }
 
-function compareSecondColumnDescending(a, b) {
-    if (a[1] === b[1]) {
+function sortDescending(a, b) {
+    if (a.amount === b.price) {
         return 0;
     }
     else {
-        return (a[1] > b[1]) ? -1 : 1;
+        return (a.price > b.price) ? -1 : 1;
     }
 }
 
-function compareSecondColumnAscending(a, b) {
-    if (a[1] === b[1]) {
+function sortAscending(a, b) {
+    if (a.amount === b.amount) {
         return 0;
     }
     else {
-        return (a[1] < b[1]) ? -1 : 1;
+        return (a.amount < b.amount) ? -1 : 1;
     }
 }
 
-function sortFunction(a, b) {
+function sortFunctionByAmount(a, b) {
     if (a[0] === b[0]) {
         return 0;
     }
@@ -112,6 +111,12 @@ function sortFunction(a, b) {
 // array2AscendingPrice = array2.sort(compareSecondColumnAscending); //asks
 // console.log('arra1 price', array1DescendingPrice);
 // console.log('array2 price', array2AscendingPrice);
+
+// array1 = array1DescendingPrice.sort(sortFunctionByAmount);
+// array2 = array2AscendingPrice.sort(sortFunctionByAmount);
+
+// console.log('array1 sorted by amount', array1);
+// console.log('array2 sorted by amount', array2);
 
 
 // let intersection = calculateIntersection(array1, array2);

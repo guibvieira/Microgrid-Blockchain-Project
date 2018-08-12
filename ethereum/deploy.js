@@ -14,7 +14,7 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
-const compiledFactory = require('./build/HouseholdFactory.json');
+//const compiledFactory = require('./build/HouseholdFactory.json');
 const compiledExchange = require('./build/Exchange.json');
 const Exchange = require ('./build/Exchange.json');
 
@@ -42,5 +42,5 @@ const deployExchange = async () => {
     console.log('Contract Exchange deployed to', result.options.address);
 };
 
-deployFactory();
 deployExchange();
+deployFactory();

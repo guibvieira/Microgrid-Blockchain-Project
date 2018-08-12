@@ -1,10 +1,8 @@
 //Using ganache
 const assert = require('assert');
 const ganache = require('ganache-cli');
-// const Web3 = require('web3');
-// const web3 = new Web3(ganache.provider());
-const web3 = require('../ethereum/web3.js');
-//probably same as web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
+const Web3 = require('web3');
+const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:7545"))
 const Agent = require('../models/agentSingle-Bid.js');
 const readCSV = require('../Simulation/readFile.js');
 
@@ -18,6 +16,7 @@ let agentAccount;
 let agent;
 let agentBalance;
 let date;
+let accounts;
 
 beforeEach(async() => {
     accounts = await web3.eth.getAccounts();
@@ -26,13 +25,10 @@ beforeEach(async() => {
     agent = new Agent(5000);
 
     agentAccount = await agent.getAccount(0);
-    console.log('agent account', agent.ethereumAddress);
     agentBalance = await agent.getAgentBalance();
     //console.log(agent.balance);
 
     household = await agent.deployContract(5000);
-
-
 });
 
 describe('Agents', () => {
@@ -45,6 +41,24 @@ describe('Agents', () => {
         let balance= await web3.eth.getBalance(agent.householdAddress);
         assert(exchangeAddress, exchange.options.address );
         assert(web3.utils.fromWei('2', 'ether'), balance);
+        
+    });
+
+    it('can place 100 bids without an error', async () =>{
+        try{
+            for(i=0; i<=100; i++){
+                date = (new Date).getTime();
+                console.log(`${i}'th transaction`);
+                await agent.placeAsk(10, 1000, date);
+                agentBalance = await agent.getAgentBalance();
+                console.log('its balance is', agentBalance);
+            }
+            
+            
+        }catch(err){
+            console.log(err);
+        }
+            
         
     });
 
