@@ -96,6 +96,7 @@ async function getExchangeBids() {
 
     let bidsCount = await exchange.methods.getBidsCount().call();
     let asksCount = await exchange.methods.getAsksCount().call();
+
     for (let i = 0; i <= bidsCount - 1 ; i++){
         bid = await exchange.methods.getBid(i).call();
 
@@ -140,7 +141,7 @@ function sortByAmount(a, b) {
 }
 
 async function init() {
-    
+    const GASPRICE = 4000000000; //wei
     const simulationDays = 365; 
     const priceOfEther = 250;
     let unFilledBids = new Array();
@@ -168,7 +169,6 @@ async function init() {
     for (let i= 0; i < simDuration; i++){
         timeArray.push(i);
         console.log('time', i);
-        
 
         for (let j = 0; j < agentsBattery.length; j++){
             agentsBattery[j].agent.setCurrentTime(i);
@@ -219,6 +219,7 @@ async function init() {
 
                 let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
                 objSeller.agent.discharge(asks[i].amount);
+                objSeller.agent.addSuccessfulAsk(asks[i].amount);
                 
                 if(confirmation == true){
                     console.log(`just sent funds from ${obj.agent.address} to ${objSeller.agent.address}`);
@@ -264,21 +265,28 @@ async function init() {
 
     }
 
-    console.log('history of prices', agentsBattery[0].agent.historicalPrices);
     let history = agentsBattery[0].agent.historicalPrices;
     let chargeTime = new Array();
     let chargeHistory = new Array();
+    let chargeHistoryAggregated = new Array();
+    let transactionCostBid = new Array();
+    let transactionCostAsk = new Array();
+    let bidTimeTransaction = new Array();
+    let askTimeTransaction = new Array();
+    let amountBidsPerT = new Array();
+    let amountAsksPerT = new Array();
 
     const sumPrices= history.reduce((a, b) => a + b, 0);
     console.log('average of prices', sumPrices/simDuration);
-    //calculating supply and demand aggregated for each time step
+    //Calculating Parameters from simulation to plot
     for (let i = 0; i < simDuration; i++) {
         let demand = new Array();
         let supply = new Array();
-        
-        chargeHistory[i] = agentsBattery[0].agent.chargeHistory[0];
-        chargeTime[i] = agentsBattery[0].agent.chargeHistory[1];
+        let charge = new Array();
+        let gasCostBids = new Array();
+        let gasCostAsks = new Array();
 
+        
         //conversion from wei to pounds
         let tempPrice = agentsBattery[0].agent.historicalPrices[i];
         tempPrice = tempPrice.toFixed(0);
@@ -288,19 +296,67 @@ async function init() {
         for (let j = 0; j < agentsBattery.length; j++) {
             demand.push(agentsBattery[j].agent.historicalDemand[i].demand);
             supply.push(agentsBattery[j].agent.historicalSupply[i].supply);
+
+            if(agentsBattery[j].agent.chargeHistory[i] == null ) {
+                charge.push(0);
+            }
+            else if(agentsBattery[j].agent.chargeHistory[i] != null) {
+                charge.push(agentsBattery[j].agent.chargeHistory[i]);
+            }
+
+            for(let k=0; k < agentsBattery[j].agent.bidHistory.length; k++ ) {
+
+                if( agentsBattery[j].agent.bidHistory[k].timeRow == i){
+                    gasCostBids.push(agentsBattery[j].agent.bidHistory[k].transactionCost);
+                }
+            }
+            for(let z=0; z < agentsBattery[j].agent.askHistory.length; z++) {
+
+                if( agentsBattery[j].agent.askHistory[z].timeRow == i){
+                    gasCostAsks.push(agentsBattery[j].agent.askHistory[z].transactionCost);
+                }
+            }
+        }
+
+        if(gasCostBids.length > 0) {
+            let amountOfBids = gasCostBids.length;
+            console.log(`amount of bids ${amountOfBids} at time ${i}`);
+            amountBidsPerT[i] = amountOfBids;
+            const sumBidCost = gasCostBids.reduce((a, b) => a + b, 0);
+            let costPerTransaction = sumBidCost / amountOfBids;
+            let calcPrice = costPerTransaction * GASPRICE;
+            let bidCostEther = await web3.utils.fromWei(calcPrice.toFixed(0), 'ether');
+            let bidCostPounds = bidCostEther * priceOfEther;
+            transactionCostBid[i] = bidCostPounds;
+        }
+
+        if(gasCostAsks.length > 0) {
+            let amountOfAsks = gasCostAsks.length;
+            console.log(`amount of asks ${amountOfAsks} at time ${i}`);
+            amountAsksPerT[i] = amountOfAsks;
+            const sumAskCost = gasCostAsks.reduce((a, b) => a + b, 0);
+            let costPerTransaction = sumAskCost / amountOfAsks;
+            let calcPrice = costPerTransaction * GASPRICE;
+            let askCostEther = await web3.utils.fromWei(calcPrice.toFixed(0), 'ether');
+            let askCostPounds = askCostEther * priceOfEther;
+            transactionCostAsk[i] = askCostPounds;
         }
         const sumDemand = demand.reduce((a, b) => a + b, 0);
         const sumSupply = supply.reduce((a, b) => a + b, 0);
+        const sumCharge = charge.reduce((a, b) => a + b, 0);
+        
         aggregatedDemand[i] = sumDemand;
         aggregatedSupply[i] = sumSupply;
+        chargeHistoryAggregated[i] = sumCharge;
     }
-    console.log('amount of charge', chargeHistory);
-    console.log('charge time', chargeTime);
+    console.log('amount of transaction', chargeHistoryAggregated);
+    //console.log('length of transaction bid array', amountBidsPerT.length);
     
     var trace1 = {
         x: timeArray,
         y: historicalPricesPlot,
         name: "Historical Prices",
+        yaxis: "y1",
         type: "scatter"
     }
     var trace2 = {
@@ -318,22 +374,60 @@ async function init() {
         type: "scatter"
     }
     var trace4 = {
-        x: chargeTime,
-        y: chargeHistory,
-        name: "Amount of Charge",
-        yaxis: "y2",
+        x: timeArray,
+        y: transactionCostBid,
+        name: "Bid Transaction Cost",
+        yaxis: "y3",
         type: "scatter"
     }
-    var data = [trace1, trace2, trace3, trace4];
+    var trace5 = {
+        x: timeArray,
+        y: transactionCostAsk,
+        name: "Ask Transaction Cost",
+        yaxis: "y3",
+        type: "scatter"
+    }
+    var trace6 = {
+        x: timeArray,
+        y: amountBidsPerT,
+        name: "# of Transactions",
+        yaxis: "y4",
+        type: "scatter"
+    }
+    var data = [trace1, trace2, trace3, trace4, trace5, trace6];
     var layout = {
         title: "Day Simulation - Agents with Batteries",
+        xaxis: {domain: [0.1, 0.85]},
         yaxis: {title: "Price (p/kWh)"},
         yaxis2: {
           title: "Energy (Wh)",
           titlefont: {color: "rgb(148, 103, 189)"},
           tickfont: {color: "rgb(148, 103, 189)"},
           overlaying: "y",
-          side: "right"
+          side: "right",
+          anchor: "x"
+        },
+        yaxis3: {
+            title: "Gas Cost (£)",
+            titlefont: {color: "#d62728"},
+            tickfont: {color: "#d62728"},
+            anchor: "x",
+            overlaying: "y",
+            side: "left",
+            anchor: "free",
+            position: 0,
+            showgrid: false
+        },
+        yaxis4: {
+            title: "# Transactions",
+            titlefont: {color: "#d62728"},
+            tickfont: {color: "#d62728"},
+            anchor: "x",
+            overlaying: "y",
+            side: "left",
+            anchor: "free",
+            position: 1,
+            showgrid: false
         }
     };
     // var layout = {

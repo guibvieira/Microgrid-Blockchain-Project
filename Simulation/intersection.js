@@ -39,6 +39,7 @@ function calculateIntersection(array1, array2){
     let array2AscendingPrice = [];
     array1DescendingPrice = array1.sort(sortAscending); // bids
     array2AscendingPrice = array2.sort(sortAscending); //asks
+    
     let x11 = array1DescendingPrice[0].amount;
     let y11 = array1DescendingPrice[0].price;
     let x12 = array1DescendingPrice[array1DescendingPrice.length-1].amount;

@@ -22,7 +22,7 @@ const web3 = new Web3 ( new Web3.providers.HttpProvider("http://localhost:8545")
 const exchange = require('../ethereum/exchange');
 
 //calc functions
-const { gaussian, getDistributionParameters }= require('./gaussian');
+const { gaussian, getDistributionParameters } = require('./gaussian');
 
 
 class Agent{
@@ -32,6 +32,7 @@ class Agent{
         this.balance =0;
         this.householdAddress = 0;
         this.household = 0;
+        this.nationalGridAddress = 0;
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
         this.weiPerEther = 1000000000000000000;
@@ -39,7 +40,7 @@ class Agent{
         //elect related variables
         this.batteryCapacity = batteryCapacity;
         this.amountOfCharge = batteryCapacity;
-        this.chargeHistory = new Array();
+        this.chargeHistory = [batteryCapacity];
         this.excessEnergy = 0;
         this.shortageEnergy = 0;
         this.currentDemand = 0;
@@ -47,13 +48,16 @@ class Agent{
         this.historicalDemand = new Array();
         this.historicalSupply = new Array();
         this.historicalPrices =  new Array();
-        this.successfulBidsHistory = new Array();
+        this.successfulBidHistory = new Array();
+        this.successfulAskHistory = new Array();
+        this.nationalGridPurchases = new Array();
         this.bidHistory = new Array();
         this.askHistory = new Array();
         this.householdID = 0;
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
         this.nationalGridPrice = 0.1437;
+        this.blackOutTimes = new Array();
 
         //predictor vars
         this.timeInterval = 3;
@@ -106,6 +110,31 @@ class Agent{
         return balance;
     }
 
+    addSuccessfulAsk(amount) {
+        let date = (new Date).getTime();
+        let newReceivedTransaction = {
+            amount: amount,
+            date: date,
+            timeRow: this.timeRow
+        }
+        this.successfulAskHistory.push(newReceivedTransaction);
+    }
+
+    buyFromNationalGrid(price, amount) {
+        let amountTransaction = price * (amount/1000);
+        amountTransaction = parseInt(amountTransaction);
+        let transactionReceipt = await web3.eth.sendTransaction({to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction});
+        let date = (new Date).getTime();
+        let newTransactionReceipt = {
+            transactionReceipt: transactionReceipt,
+            transactionCost: transactionReceipt.gasUsed,
+            date: date
+        }
+        this.successfulBidHistory.push(newTransactionReceipt);
+        this.charge(amount);
+        return transactionReceipt;
+    }
+
     async sendFunds(price, amount, receiver) {
         let amountTransaction = price * (amount/1000);
         amountTransaction = parseInt(amountTransaction);
@@ -122,24 +151,38 @@ class Agent{
     }
 
     async placeBuy(price, amount, date){
-        //console.log(`placing buy from ${this.householdID} for ${amount} at this price ${price}` );
-        this.bidHistory.push(new Array(this.ethereumAddress, price, amount, date, this.timeRow));
 
-        await exchange.methods.placeBid(price, amount, date).send({
+        let transactionReceipt = await exchange.methods.placeBid(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
+        let newBid = {
+            address: this.ethereumAddress,
+            price: price,
+            amount: amount,
+            date: date,
+            timeRow: this.timeRow,
+            transactionCost: transactionReceipt.gasUsed
+        }
+        this.bidHistory.push(newBid);
         return true;
     }
 
     async placeAsk(price, amount, date){
-       //console.log(`placing ask from ${this.householdID} for ${amount} at this price ${price}` );
-        this.askHistory.push(new Array(this.ethereumAddress, price, amount, date, this.timeRow));
 
-        await exchange.methods.placeAsk(price, amount, date).send({
+        let transactionReceipt = await exchange.methods.placeAsk(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
+        let newAsk = {
+            address: this.ethereumAddress,
+            price: price,
+            amount: amount,
+            date: date,
+            timeRow: this.timeRow,
+            transactionCost: transactionReceipt.gasUsed
+        }
+        this.askHistory.push(newAsk);
         return true;
     }
 
@@ -151,13 +194,19 @@ class Agent{
 
     charge(amount){
         this.amountOfCharge += amount;
-        this.chargeHistory = new Array(this.amountOfCharge, this.timeRow);
-
+        if(this.amountOfCharge > this.batteryCapacity) {
+            this.amountOfCharge = this.batteryCapacity;
+        }
+        this.chargeHistory.push(this.amountOfCharge)//new Array(this.amountOfCharge, this.timeRow);
     }
 
     discharge(amount){
         this.amountOfCharge -= amount;
-        this.chargeHistory = new Array(this.amountOfCharge, this.timeRow);
+        if(this.amountOfCharge <= 0) {
+            this.amountOfCharge = 0;
+            this.blackOutTimes.push(this.timeRow);
+        }
+        this.chargeHistory.push(this.amountOfCharge); //new Array(this.amountOfCharge, this.timeRow);
     }
 
     setCurrentTime(row){
@@ -165,6 +214,20 @@ class Agent{
         // if(this.bidHistory[this.timeRow - 1].timeRow)     
         // var obj = agentsBattery.find(function (obj) { return obj.agentAccount === acceptedBids[i].address; });
         //if there was a trade last hour, buy or sell, then update that on the amountOfCharge   
+    }
+
+    calculateYesterdayAverage() {
+        if ( this.timeRow - 24 <= 0){
+            return this.timeRow - 24;
+        } 
+        let scaledTime = (this.timeRow - 24)/24;
+        let startOfDay = floor(scaledTime) * 24;
+        let endOfDay = startOfDay + 24;
+        let sumPrices = 0;
+        for (let i = startOfDay; i <= endOfDay; i++) {
+            sumPrices += this.historicalPrices[i]
+        }
+        return sumPrices / 24; // returns the average over that entire day
     }
 
     async purchaseLogic() {
@@ -242,9 +305,14 @@ class Agent{
                 }
             }
             else if (shortageOfEnergy > 0){
-                if (this.amountOfCharge > 0.2 * this.batteryCapacity){
+                if (this.amountOfCharge > 0.5 * this.batteryCapacity){
                     this.discharge(shortageOfEnergy);
                     return true;
+                }
+                else if(this.amountOfCharge < 0.5 * this.batteryCapacity && this.amountOfCharge > 0.2 * this.batteryCapacity){
+                    price = this.formulatePrice();
+                    price = this.convertToWei(price);
+                    await this.placeBuy(price, shortageOfEnergy, time);
                 }
                 else if (this.amountOfCharge <= 0.2 * this.batteryCapacity){
                     price = this.formulatePrice();
