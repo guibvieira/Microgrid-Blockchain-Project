@@ -5,6 +5,7 @@ const ganache = require('ganache-cli');
 const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
 const Agent = require('../models/agentSimulation.js');
+const AgentNationalGrid = require('../models/agentNationalGrid.js');
 const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
 
 //compiled contracts
@@ -39,6 +40,7 @@ function deleteRow(arr, row) {
  }
 
 async function getFiles() {
+    console.log('reading files...');
     let householdFiles = new Array();
     let householdHistoricData = new Array();
     let metaData= await loadData(inputFile);
@@ -59,14 +61,15 @@ async function getFiles() {
 }
 
 async function createAgents(metaData, householdHistoricData, batteryCapacity, batteryBool) {
+    console.log('creating agents...');
     let agents = new Array();
+    let agentNationalGrid = 0;
 
-    try {
         for (const item in metaData){
 
         //creation of agents and feeding the data in
         agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
-
+        agentNationalGrid = new AgentNationalGrid();
         agentAccount = await agent.getAccount(item);
         
         //household = await agent.deployContract();
@@ -78,14 +81,8 @@ async function createAgents(metaData, householdHistoricData, batteryCapacity, ba
             agentAccount
         }
         agents.push(newAgent);      
-  }   
-
-    return agents;
-
-  } catch (err) {
-    console.log(err);
-  }
-    
+        }
+    return { agents, agentNationalGrid };
 }
 
 async function getExchangeBids() {
@@ -144,13 +141,14 @@ async function init() {
     const GASPRICE = 4000000000; //wei
     const simulationDays = 365; 
     const priceOfEther = 250;
+    const NATIONAL_GRID_PRICE = 0.1437;
     let unFilledBids = new Array();
     let unFilledAsks = new Array();
     let aggregatedDemand = new Array();
     let aggregatedSupply = new Array();
     let historicalPricesPlot = new Array();
 
-    let accounts = await web3.eth.getAccounts();
+    var accounts = await web3.eth.getAccounts();
 
     let { metaData, householdHistoricData } = await getFiles();
 
@@ -160,21 +158,28 @@ async function init() {
     let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length) / 2 );
     //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
 
-    let agentsBattery = await createAgents(metaDataBattery, householdDataBattery, 12000, true);
+    //AGENTS BATTERY DOESN'T WORK BUT AGENT NATIONAL GRID DOES
+    let { agents, agentNationalGrid } = await createAgents(metaDataBattery, householdDataBattery, 12000, true);
     //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
+    let agentsBattery = agents;
 
     let simDuration = householdHistoricData[0].length / simulationDays;    //start simulation
     let timeArray= new Array();
-    
-    for (let i= 0; i < simDuration; i++){
+
+    console.log('starting simulation');
+
+    for (let i= 0; i < simDuration; i++) {
         timeArray.push(i);
         console.log('time', i);
 
+        let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length-1); // make the last account from ganache to be the national grid address
+        await agentNationalGrid.getAgentBalance(); //initialise the balance count
+        
         for (let j = 0; j < agentsBattery.length; j++){
+
             agentsBattery[j].agent.setCurrentTime(i);
-            // if( i=0){
-            //     agentsBattery[j].agent.setInitialCharge();
-            // }
+            await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
+           
             try{
                 await agentsBattery[j].agent.purchaseLogic();
             } catch(err){
@@ -266,15 +271,14 @@ async function init() {
     }
 
     let history = agentsBattery[0].agent.historicalPrices;
-    let chargeTime = new Array();
-    let chargeHistory = new Array();
     let chargeHistoryAggregated = new Array();
     let transactionCostBid = new Array();
     let transactionCostAsk = new Array();
-    let bidTimeTransaction = new Array();
-    let askTimeTransaction = new Array();
     let amountBidsPerT = new Array();
     let amountAsksPerT = new Array();
+    let nationalGridBidsAggAmount= new Array();
+    let nationalGridBidsAggGas = new Array();
+    let nationalGridPurchases = new Array();
 
     const sumPrices= history.reduce((a, b) => a + b, 0);
     console.log('average of prices', sumPrices/simDuration);
@@ -285,8 +289,10 @@ async function init() {
         let charge = new Array();
         let gasCostBids = new Array();
         let gasCostAsks = new Array();
+        let nationalGridBidsGas = new Array();
+        let nationalGridBidsAmount = new Array();
 
-        
+
         //conversion from wei to pounds
         let tempPrice = agentsBattery[0].agent.historicalPrices[i];
         tempPrice = tempPrice.toFixed(0);
@@ -297,12 +303,17 @@ async function init() {
             demand.push(agentsBattery[j].agent.historicalDemand[i].demand);
             supply.push(agentsBattery[j].agent.historicalSupply[i].supply);
 
+            //fill the empty time slots with zeros for plotting
             if(agentsBattery[j].agent.chargeHistory[i] == null ) {
                 charge.push(0);
             }
             else if(agentsBattery[j].agent.chargeHistory[i] != null) {
                 charge.push(agentsBattery[j].agent.chargeHistory[i]);
             }
+            
+            //ADD SUCCESSFUL BID HISTORY INTO THESE STATS
+            //WANT TO KNOW HOW MUCH THE TRANSACTION COSTS PLUS THE COST OF ENERGY ITSELF TO MAKE COMPARISON
+            //WITH CENTRALISED SYSTEM
 
             for(let k=0; k < agentsBattery[j].agent.bidHistory.length; k++ ) {
 
@@ -310,17 +321,24 @@ async function init() {
                     gasCostBids.push(agentsBattery[j].agent.bidHistory[k].transactionCost);
                 }
             }
+
             for(let z=0; z < agentsBattery[j].agent.askHistory.length; z++) {
 
                 if( agentsBattery[j].agent.askHistory[z].timeRow == i){
                     gasCostAsks.push(agentsBattery[j].agent.askHistory[z].transactionCost);
                 }
             }
+
+            for(let k=0; k < agentsBattery[j].agent.nationalGridPurchases.length; k++) {
+                if ( agentsBattery[j].agent.nationalGridPurchases[k].timeRow == i) {
+                    nationalGridBidsAmount.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionAmount);
+                    nationalGridBidsGas.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionCost);
+                }
+            }
         }
 
         if(gasCostBids.length > 0) {
             let amountOfBids = gasCostBids.length;
-            console.log(`amount of bids ${amountOfBids} at time ${i}`);
             amountBidsPerT[i] = amountOfBids;
             const sumBidCost = gasCostBids.reduce((a, b) => a + b, 0);
             let costPerTransaction = sumBidCost / amountOfBids;
@@ -332,7 +350,6 @@ async function init() {
 
         if(gasCostAsks.length > 0) {
             let amountOfAsks = gasCostAsks.length;
-            console.log(`amount of asks ${amountOfAsks} at time ${i}`);
             amountAsksPerT[i] = amountOfAsks;
             const sumAskCost = gasCostAsks.reduce((a, b) => a + b, 0);
             let costPerTransaction = sumAskCost / amountOfAsks;
@@ -341,6 +358,18 @@ async function init() {
             let askCostPounds = askCostEther * priceOfEther;
             transactionCostAsk[i] = askCostPounds;
         }
+
+        if(nationalGridBidsGas.length > 0) {
+            nationalGridPurchases[i] = nationalGridBidsGas.length;
+            nationalGridBidsAggAmount[i] = nationalGridBidsAmount.reduce((a, b) => a + b, 0);
+            nationalGridBidsAggGas[i] = nationalGridBidsGas.reduce((a, b) => a + b, 0);
+        }
+        else if(nationalGridBidsGas.length == 0) {
+            nationalGridPurchases[i] = 0;
+            nationalGridBidsAggAmount[i] = 0;
+            nationalGridBidsAggGas[i] = 0;
+        }
+
         const sumDemand = demand.reduce((a, b) => a + b, 0);
         const sumSupply = supply.reduce((a, b) => a + b, 0);
         const sumCharge = charge.reduce((a, b) => a + b, 0);
@@ -349,8 +378,11 @@ async function init() {
         aggregatedSupply[i] = sumSupply;
         chargeHistoryAggregated[i] = sumCharge;
     }
-    console.log('amount of transaction', chargeHistoryAggregated);
+    //console.log('amount of transaction', chargeHistoryAggregated);
     //console.log('length of transaction bid array', amountBidsPerT.length);
+    console.log('national grid purchases aggregated amount', nationalGridBidsAggAmount);
+    console.log('national grid purchases aggregated gas price', nationalGridBidsAggGas);
+    console.log('national grid purchases amount of transactions', nationalGridPurchases);
     
     var trace1 = {
         x: timeArray,

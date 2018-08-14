@@ -35,7 +35,6 @@ class Agent{
         this.nationalGridAddress = 0;
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
-        this.weiPerEther = 1000000000000000000;
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -110,6 +109,13 @@ class Agent{
         return balance;
     }
 
+    async setNationalGrid(nationalGridPrice, nationalGridAddress ) {
+        let nationalGridPriceEther = nationalGridPrice / 250; 
+        let nationalGridPriceWei = await web3.utils.toWei(`${nationalGridPriceEther}`, 'ether');
+        this.nationalGridPrice = nationalGridPriceWei;
+        this.nationalGridAddress = nationalGridAddress;
+    }
+
     addSuccessfulAsk(amount) {
         let date = (new Date).getTime();
         let newReceivedTransaction = {
@@ -120,17 +126,21 @@ class Agent{
         this.successfulAskHistory.push(newReceivedTransaction);
     }
 
-    buyFromNationalGrid(price, amount) {
-        let amountTransaction = price * (amount/1000);
+    async buyFromNationalGrid(amount) {
+        let amountTransaction = this.nationalGridPrice * (amount/1000);
         amountTransaction = parseInt(amountTransaction);
         let transactionReceipt = await web3.eth.sendTransaction({to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction});
         let date = (new Date).getTime();
+
         let newTransactionReceipt = {
             transactionReceipt: transactionReceipt,
             transactionCost: transactionReceipt.gasUsed,
-            date: date
+            transactionAmount: amountTransaction,
+            date: date,
+            timeRow: this.timeRow
         }
-        this.successfulBidHistory.push(newTransactionReceipt);
+
+        this.nationalGridPurchases.push(newTransactionReceipt);
         this.charge(amount);
         return transactionReceipt;
     }
@@ -143,6 +153,7 @@ class Agent{
         let newTransactionReceipt = {
             transactionReceipt: transactionReceipt,
             transactionCost: transactionReceipt.gasUsed,
+            transactionAmount: amountTransaction,
             date: date
         }
         this.successfulBidHistory.push(newTransactionReceipt);
@@ -315,9 +326,7 @@ class Agent{
                     await this.placeBuy(price, shortageOfEnergy, time);
                 }
                 else if (this.amountOfCharge <= 0.2 * this.batteryCapacity){
-                    price = this.formulatePrice();
-                    price = this.convertToWei(price);
-                    await this.placeBuy(price, shortageOfEnergy, time);
+                    this.buyFromNationalGrid(shortageOfEnergy);
                 }   
             }  
         }
@@ -345,9 +354,7 @@ class Agent{
                     await this.placeBuy(ask[1], shortageOfEnergy, time); //no need to convert, it's already getting the value in Wei
                 }
                 else {
-                    price = this.formulatePrice();
-                    price = this.convertToWei(price);
-                    await this.placeBuy(price, shortageOfEnergy, time);
+                    this.buyFromNationalGrid(shortageOfEnergy)
                 }
                 
             }

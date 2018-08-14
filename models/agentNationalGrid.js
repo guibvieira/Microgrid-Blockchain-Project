@@ -13,8 +13,8 @@ class AgentNationalGrid{
     constructor(){
         this.nationalGridPrice = 0.1437;
         this.purchaseHistory = new Array();
+        this.balanceHistory = new Array();
     }
-
 
     async getAccount(index) {
         let accounts = await web3.eth.getAccounts();
@@ -25,9 +25,9 @@ class AgentNationalGrid{
     async getAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
         this.balance = balance;
+        this.balanceHistory.push(balance);
         return balance;
     }
-
-
-
 }
+
+module.exports = AgentNationalGrid;
