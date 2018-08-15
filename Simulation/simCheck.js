@@ -211,9 +211,7 @@ async function init() {
     const averagePrices = sumPrices/simDuration;
     console.log('average of prices', averagePrices);
     console.log('sim duration', simDuration);
-
     //Calculating Parameters from simulation to plot
-    //
     for (let i = 0; i < simDuration; i++) {
         let demand = new Array();
         let supply = new Array();

@@ -2,14 +2,46 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
+let fastcsv = require('fast-csv');
+var fs = require('fs');
 
-tempPrice = 399538469656205.6;
-tempPrice = tempPrice.toFixed(0);
-console.log(tempPrice);
-tempPrice = web3.utils.fromWei(tempPrice, 'ether');
-console.log('tempPrice', tempPrice);
-tempPrice = tempPrice* 250;
-console.log('price in pounds', tempPrice);
+    // tempArray = [ [[' hour'], ['average demand'], ['average supply']],
+    //            [[1], [5],[10]],
+    //             [[2],[3],[4]],
+    //             [[5],[6],[7]],
+    //             [[8],[9],[10]]];
+
+    // var fast_csv = fastcsv.createWriteStream();
+    // var writeStream = fs.createWriteStream("outputfile.csv");
+    // fast_csv.pipe(writeStream);
+
+    // for(var i = 0; i < tempArray.length; i++){
+    //     let arrayWrite = new Array();
+    //     for(let j=0; j< tempArray[0].length; j++){
+    //     arrayTemp2 = new Array();
+    //     arrayWrite.push(tempArray[i][j]);
+    //     // fast_csv.write( [ tempArray[i][j] ] );             //each element inside bracket
+    //     }
+    //     fast_csv.write( [ arrayWrite ] );
+    //     }
+    // fast_csv.end();
+
+    var csv = require("fast-csv");
+    var fs = require("fs");
+    var csvStream = csv.createWriteStream({ headers: true }),
+        writableStream = fs.createWriteStream("output.csv");
+
+    writableStream.on("finish", function () {
+        console.log("DONE!");
+    });
+    let array = [{ a: "a0", b: "b0" },{ a: "a1", b: "b1" }, { a: "a2", b: "b2" }]
+    csvStream.pipe(writableStream);
+    for(let i =0; i<array.length; i++){
+    csvStream.write(array[i]);
+        
+    }
+    csvStream.end();
+
 // var address1 = {id: 124, agent: 'bla', address: 0xb181FB52b6e5Ee5915fdB3ad678E0b8a753C3bd3};
 // var addressx = address1;
 // var address2 = {id: 314, agent: 'bla', address: 0xA1B0d2152E36ebd2ac8e4FC3309cF093E28B1F5c};

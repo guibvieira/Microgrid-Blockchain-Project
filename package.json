@@ -8,7 +8,8 @@
     "dev": "next dev",
     "reset": "rm -rf node_modules/ && npm install",
     "deploy": "node ./ethereum/deploy.js",
-    "compile": "node ./ethereum/compile.js"
+    "compile": "node ./ethereum/compile.js",
+    "sim": "node ./simulation/simulationSingleBid.js"
   },
   "author": "",
   "license": "ISC",

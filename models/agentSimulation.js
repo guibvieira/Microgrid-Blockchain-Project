@@ -58,6 +58,8 @@ class Agent{
         this.nationalGridPrice = 0.1437;
         this.blackOutTimes = new Array();
 
+        this.balanceHistory = new Array();
+
         //predictor vars
         this.timeInterval = 3;
         this.learningRate = 0.15;
@@ -109,6 +111,11 @@ class Agent{
         return balance;
     }
 
+    async setAgentBalance() {
+        let balance = await web3.eth.getBalance(this.ethereumAddress);
+        this.balanceHistory.push(balance);
+    }
+
     async setNationalGrid(nationalGridPrice, nationalGridAddress ) {
         let nationalGridPriceEther = nationalGridPrice / 250; 
         let nationalGridPriceWei = await web3.utils.toWei(`${nationalGridPriceEther}`, 'ether');
@@ -128,8 +135,9 @@ class Agent{
 
     async buyFromNationalGrid(amount) {
         let amountTransaction = this.nationalGridPrice * (amount/1000);
-        amountTransaction = parseInt(amountTransaction);
-        let transactionReceipt = await web3.eth.sendTransaction({to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction});
+        amountTransaction = parseInt( + amountTransaction.toFixed(18));
+
+        let transactionReceipt = await web3.eth.sendTransaction({to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction, gas: '2000000'});
         let date = (new Date).getTime();
 
         let newTransactionReceipt = {
@@ -326,7 +334,7 @@ class Agent{
                     await this.placeBuy(price, shortageOfEnergy, time);
                 }
                 else if (this.amountOfCharge <= 0.2 * this.batteryCapacity){
-                    this.buyFromNationalGrid(shortageOfEnergy);
+                    await this.buyFromNationalGrid(shortageOfEnergy);
                 }   
             }  
         }
@@ -354,7 +362,8 @@ class Agent{
                     await this.placeBuy(ask[1], shortageOfEnergy, time); //no need to convert, it's already getting the value in Wei
                 }
                 else {
-                    this.buyFromNationalGrid(shortageOfEnergy)
+
+                    await this.buyFromNationalGrid(shortageOfEnergy);
                 }
                 
             }
