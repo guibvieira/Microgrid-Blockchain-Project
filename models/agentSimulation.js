@@ -170,7 +170,7 @@ class Agent{
     }
 
     async placeBuy(price, amount, date){
-
+        console.log('placing buy');
         let transactionReceipt = await exchange.methods.placeBid(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'
@@ -184,11 +184,12 @@ class Agent{
             transactionCost: transactionReceipt.gasUsed
         }
         this.bidHistory.push(newBid);
+        console.log('bidHistory', this.bidHistory.length);
         return true;
     }
 
     async placeAsk(price, amount, date){
-
+        console.log('placing ask');
         let transactionReceipt = await exchange.methods.placeAsk(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'
@@ -223,7 +224,11 @@ class Agent{
         this.amountOfCharge -= amount;
         if(this.amountOfCharge <= 0) {
             this.amountOfCharge = 0;
-            this.blackOutTimes.push(this.timeRow);
+            let newBlackOut = {
+                timeRow: this.timeRow,
+                blackOut: 1
+            }
+            this.blackOutTimes.push(newBlackOut);
         }
         this.chargeHistory.push(this.amountOfCharge); //new Array(this.amountOfCharge, this.timeRow);
     }
