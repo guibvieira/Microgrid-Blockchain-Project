@@ -6,6 +6,7 @@ const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
 const Agent = require('../models/agentSimulation.js');
 const AgentNationalGrid = require('../models/agentNationalGrid.js');
+const AgentBiomass = require('../models/agentBiomass.js');
 const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
 
 //compiled contracts
@@ -38,6 +39,28 @@ const NATIONAL_GRID_PRICE = 0.1437;
 const WEI_IN_ETHER = 1000000000000000000;
 const csvResultsFileName = 'outputWeek.csv';
 
+function deleteRow2D(arr, row) {
+    arr = arr.slice(0); // make copy
+    arr.splice(row - 1, 1);
+    return arr;
+ }
+
+function generateBiomassData(householdHistoricData) {
+    let biomassData = Array(householdHistoricData[0].length).fill(0);
+
+    for(let i = 0; i < householdHistoricData.length; i++) {
+
+        householdHistoricData = deleteRow2D(householdHistoricData[i], 0);
+
+        for(let j = 0; j < householdHistoricData[i].length; j++) {
+
+            biomassData[j] += householdHistoricData[i][j][1] * 0.9; //satisfy 90% of their needs
+
+        }
+    }
+    console.log('biomassData', biomassData);
+}
+
 async function init() {
     let unFilledBids = new Array();
     let unFilledAsks = new Array();
@@ -49,6 +72,8 @@ async function init() {
 
     let { metaData, householdHistoricData } = await getFiles();
 
+    let biomassData = generateBiomassData(householdHistoricData);
+
     let metaDataBattery = metaData.slice(0, Math.floor(metaData.length / 2));
     //let metaDataNoBattery = metaData.slice( Math.floor(metaData.length)/2 , metaData.length-1 );
 
@@ -56,13 +81,16 @@ async function init() {
     //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
 
     //AGENTS BATTERY DOESN'T WORK BUT AGENT NATIONAL GRID DOES
-    let { agents, agentNationalGrid } = await createAgents(metaDataBattery, householdDataBattery, 12000, true);
+    let { agents, agentNationalGrid, agentBiomass } = await createAgents(metaDataBattery, householdDataBattery, biomassData 12000, true);
     //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
     let agentsBattery = agents;
 
     let simulationDurationCalc = 365 / simulationDays;
     let simDuration = householdHistoricData[0].length / Math.round(simulationDurationCalc);    //start simulation
-    
+
+    let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length-1); // make the last account from ganache to be the national grid address
+    let biomassAddress = await agentBiomass.getAccount(accounts.length-2);
+
     simDuration = Math.round(simDuration);
     let timeArray= new Array();
     console.log('sim duration', simDuration);
@@ -72,13 +100,18 @@ async function init() {
         timeArray.push(i);
         console.log('time', i);
 
-        let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length-1); // make the last account from ganache to be the national grid address
         await agentNationalGrid.getAgentBalance(); //initialise the balance count
+
+        await agentBiomass.getAgentBalance();
+        agentBiomass.setCurrentTime();
+        await agentBiomass.sellingLocic();
+
         
         for (let j = 0; j < agentsBattery.length; j++){
 
             agentsBattery[j].agent.setCurrentTime(i);
             agentsBattery[j].agent.setAgentBalance();
+
 
             if( i == 0) {
                 await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
@@ -90,8 +123,8 @@ async function init() {
                 console.log('error from purchase logic', err);
             }
         }
-        let { bids, asks } = await getExchangeBids();
 
+        let { bids, asks } = await getExchangeBids();
 
         //Decide on price and make transactions to respective receivers
         if (bids.length >= 2  && asks.length  >= 2 ){        
@@ -116,6 +149,8 @@ async function init() {
                 let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
                 objSeller.agent.discharge(asks[i].amount);
                 objSeller.agent.addSuccessfulAsk(asks[i].amount);
+
+                //CHECK HOW TO INTRODUCE ACKNOWLEDGEMENT OF ASKS FOR BIOMASS
                 
             }
 
@@ -160,6 +195,7 @@ async function init() {
     }
 
     let agentBalanceAverage = new Array();
+    let biomassBalance = new Array();
     
     let history = agentsBattery[0].agent.historicalPrices;
     let aggActualDemand =  new Array();
@@ -209,7 +245,6 @@ async function init() {
         let supply = new Array();
         let charge = new Array();
         let gasCostBids = new Array();
-        console.log('gasCostBids', gasCostBids.length);
         let gasCostAsks = new Array();
         let nationalGridBidsGas = new Array();
         let nationalGridBidsAmount = new Array();
@@ -222,6 +257,8 @@ async function init() {
 
         //conversion from wei to pounds
         historicalPricesPlot[i] = convertWeiToPounds(agentsBattery[0].agent.historicalPrices[i]);
+
+        biomassBalance.push(agentBiomass.balanceHistory[i]);
 
         for (let j = 0; j < agentsBattery.length; j++) {
             demand.push(agentsBattery[j].agent.historicalDemand[i].demand);
@@ -650,7 +687,7 @@ function deleteRow(arr, row) {
     arr = arr.slice(0); // make copy
     arr.splice(row, 1);
     return arr;
- }
+}
 
 async function getFiles() {
     console.log('reading files...');
@@ -673,16 +710,19 @@ async function getFiles() {
     return { metaData, householdHistoricData};
 }
 
-async function createAgents(metaData, householdHistoricData, batteryCapacity, batteryBool) {
+async function createAgents(metaData, householdHistoricData, biomassData, batteryCapacity, batteryBool) {
     console.log('creating agents...');
     let agents = new Array();
-    let agentNationalGrid = 0;
+    let agentNationalGrid = new AgentNationalGrid();
+    let agentBiomass = new AgentBiomass();
+
+    agentBiomass.loadData(biomassData);
 
         for (const item in metaData){
 
         //creation of agents and feeding the data in
         agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
-        agentNationalGrid = new AgentNationalGrid();
+        
         agentAccount = await agent.getAccount(item);
         
         //household = await agent.deployContract();
@@ -695,7 +735,7 @@ async function createAgents(metaData, householdHistoricData, batteryCapacity, ba
         }
         agents.push(newAgent);      
         }
-    return { agents, agentNationalGrid };
+    return { agents, agentNationalGrid,agentBiomass };
 }
 
 async function getExchangeBids() {

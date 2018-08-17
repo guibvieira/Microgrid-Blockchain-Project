@@ -82,12 +82,12 @@ class Agent{
         for (i=1; i<historicData.length-1; i++){
             let currentDemand = {
                 time: historicData[i][0], 
-                demand: + parseFloat(historicData[i][1]).toFixed(3)
+                demand: + parseFloat(historicData[i][1]).toFixed(4)
             }
 
             let currentSupply = {
                 time: historicData[i][0], 
-                supply: + parseFloat(historicData[i][2]).toFixed(3)
+                supply: + parseFloat(historicData[i][2]).toFixed(4)
             }
             
             this.historicalDemand.push(currentDemand);
@@ -324,7 +324,7 @@ class Agent{
                 }
                 else if (this.amountOfCharge >= this.batteryCapacity * 0.8 ){
                     price = this.formulatePrice();
-                    price = this.convertToWei(price);
+                    price = await this.convertToWei(price);
                     await this.placeAsk(price, excessEnergy, time);
                 }
             }
@@ -335,7 +335,7 @@ class Agent{
                 }
                 else if(this.amountOfCharge < 0.5 * this.batteryCapacity && this.amountOfCharge > 0.2 * this.batteryCapacity){
                     price = this.formulatePrice();
-                    price = this.convertToWei(price);
+                    price = await this.convertToWei(price);
                     await this.placeBuy(price, shortageOfEnergy, time);
                 }
                 else if (this.amountOfCharge <= 0.2 * this.batteryCapacity){
@@ -354,7 +354,7 @@ class Agent{
                 }
                 else {
                     price = this.formulatePrice();
-                    price = this.convertToWei(price);
+                    price = await this.convertToWei(price);
                     await this.placeAsk(price, excessEnergy, time);
                 }
                 
@@ -375,10 +375,10 @@ class Agent{
         }
     }
 
-    convertToWei(price) {
+    async convertToWei(price) {
         let calcPrice = (price / this.priceOfEther);
         calcPrice = calcPrice.toFixed(18);
-        price = web3.utils.toWei(calcPrice, 'ether');
+        price = await web3.utils.toWei(calcPrice, 'ether');
         price = parseInt(price);
         return price;
     }

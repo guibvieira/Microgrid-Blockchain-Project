@@ -26,21 +26,15 @@ var fs = require('fs');
     //     }
     // fast_csv.end();
 
-    var csv = require("fast-csv");
-    var fs = require("fs");
-    var csvStream = csv.createWriteStream({ headers: true }),
-        writableStream = fs.createWriteStream("output.csv");
-
-    writableStream.on("finish", function () {
-        console.log("DONE!");
-    });
-    let array = [{ a: "a0", b: "b0" },{ a: "a1", b: "b1" }, { a: "a2", b: "b2" }]
-    csvStream.pipe(writableStream);
-    for(let i =0; i<array.length; i++){
-    csvStream.write(array[i]);
-        
-    }
-    csvStream.end();
+    let array = [["0", "0", "0", "0"], [0,1,2,3], [0,1,2,3]];
+    function deleteRow(arr, row) {
+        arr = arr.slice(0); // make copy
+        arr.splice(row - 1, 1);
+        return arr;
+     }
+    let arr = deleteRow(array, 0)
+    console.log('array', arr);
+    console.log(array.length)
 
 // var address1 = {id: 124, agent: 'bla', address: 0xb181FB52b6e5Ee5915fdB3ad678E0b8a753C3bd3};
 // var addressx = address1;
