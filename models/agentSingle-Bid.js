@@ -29,7 +29,6 @@ const { gaussian, getDistributionParameters }= require('./gaussian');
 
 class Agent{
     constructor(batteryCapacity, batteryBool){
-        //FIND WAY TO CLACULATE AVERAGE OF PRICES FOR AN ENTIRE DAY (ATTENTION !!!!)
         this.timeRow = 0;
         this.balance =0;
         this.householdAddress = 0;

@@ -15,6 +15,7 @@
   "license": "ISC",
   "dependencies": {
     "@zeit/next-sass": "^0.2.0",
+    "algebra.js": "^0.2.6",
     "axios": "^0.18.0",
     "brain.js": "^1.2.4",
     "circular-json": "^0.5.5",

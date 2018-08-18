@@ -15,11 +15,12 @@ const exchange = require('../ethereum/exchange');
 
 //packages and functions imports
 const readCSV = require('./readFile.js');
+const {convertArrayGasToPounds, convertArrayWeiToPounds, convertWeiToPounds, convertGasToPounds} = require('./conversions.js');
 let fs = require('fs');
 var csv = require("fast-csv");
 let parse = require('csv-parse');
 let async = require('async');
-let calculateIntersection = require('./intersection');
+let calculateIntersection = require('./intersectionBiomass');
 let inputFile = '../data/metadata-LCOE.csv';
 let id = new Array();
 let baseValue = new Array();
@@ -33,33 +34,15 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 7;
-const priceOfEther = 250;
-const NATIONAL_GRID_PRICE = 0.1437;
+const simulationDays = 1;  // input
+const PRICE_OF_ETHER = 250; 
+const NATIONAL_GRID_PRICE = 0.1437; //input
+const BIOMASS_PRICE_MIN = 0.06; //input
+const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputWeek.csv';
+const csvResultsFileName = 'outputDayBiomass1.csv'; //input
 
-function deleteRow2D(arr, row) {
-    arr = arr.slice(0); // make copy
-    arr.splice(row - 1, 1);
-    return arr;
- }
 
-function generateBiomassData(householdHistoricData) {
-    let biomassData = Array(householdHistoricData[0].length).fill(0);
-
-    for(let i = 0; i < householdHistoricData.length; i++) {
-
-        householdHistoricData = deleteRow2D(householdHistoricData[i], 0);
-
-        for(let j = 0; j < householdHistoricData[i].length; j++) {
-
-            biomassData[j] += householdHistoricData[i][j][1] * 0.9; //satisfy 90% of their needs
-
-        }
-    }
-    console.log('biomassData', biomassData);
-}
 
 async function init() {
     let unFilledBids = new Array();
@@ -67,6 +50,9 @@ async function init() {
     let aggregatedDemand = new Array();
     let aggregatedSupply = new Array();
     let historicalPricesPlot = new Array();
+    let biomassSellHistory = new Array();
+    let biomassBalanceHistory = new Array();
+    let nationalGridBalanceHistory = new Array();
 
     var accounts = await web3.eth.getAccounts();
 
@@ -80,11 +66,10 @@ async function init() {
     let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length) / 2 );
     //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
 
-    //AGENTS BATTERY DOESN'T WORK BUT AGENT NATIONAL GRID DOES
-    let { agents, agentNationalGrid, agentBiomass } = await createAgents(metaDataBattery, householdDataBattery, biomassData 12000, true);
+    let { agents, agentNationalGrid, agentBiomass } = await createAgents(metaDataBattery, householdDataBattery, biomassData, 12000, true, BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX);
     //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
+    
     let agentsBattery = agents;
-
     let simulationDurationCalc = 365 / simulationDays;
     let simDuration = householdHistoricData[0].length / Math.round(simulationDurationCalc);    //start simulation
 
@@ -93,6 +78,7 @@ async function init() {
 
     simDuration = Math.round(simDuration);
     let timeArray= new Array();
+
     console.log('sim duration', simDuration);
     console.log('starting simulation');
 
@@ -100,11 +86,10 @@ async function init() {
         timeArray.push(i);
         console.log('time', i);
 
-        await agentNationalGrid.getAgentBalance(); //initialise the balance count
-
-        await agentBiomass.getAgentBalance();
-        agentBiomass.setCurrentTime();
-        await agentBiomass.sellingLocic();
+        nationalGridBalanceHistory.push( await agentNationalGrid.getAgentBalance() ); //initialise the balance count
+        biomassBalanceHistory.push( await agentBiomass.getAgentBalance() );
+        agentBiomass.setCurrentTime(i);
+        await agentBiomass.sellingLogic();
 
         
         for (let j = 0; j < agentsBattery.length; j++){
@@ -123,48 +108,53 @@ async function init() {
                 console.log('error from purchase logic', err);
             }
         }
-
         let { bids, asks } = await getExchangeBids();
 
         //Decide on price and make transactions to respective receivers
         if (bids.length >= 2  && asks.length  >= 2 ){        
             let intersection = calculateIntersection(bids, asks); //first is price, next is amount, lastly address
+            console.log('intersection', intersection);
             let paidBids = new Array();
 
+            //sort by decreasing amount
             bids = bids.sort(sortByAmount);
             asks = asks.sort(sortByAmount);
             numberOfBids.push(bids.length);
-          
+
             //populate every agent with the closing price for this time step
             for (let j = 0; j < agentsBattery.length; j++) {
                 agentsBattery[j].agent.historicalPrices[i] = intersection[1];
             }
 
-            for(let i=0; i < asks.length; i++) {
-                let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[i].address; });
-                paidBids.push(obj);
-                confirmation = await obj.agent.sendFunds(intersection[1], asks[i].amount, asks[i].address );
-                obj.agent.charge(asks[i].amount);
+            // { bids2: bids, asks2, agentsBattery2, agentBiomass2, biomassAddress2 } = await matchBids(bids.length - 1, asks.length - 1);
+            // bids = bids2;
+            //match bids to asks until there are no more left, all settled at single price from 'intersection'
+            let { bids: unfilledBids, asks: unfilledAsks, agentsBattery: agentsBattery2, agentBiomass: agentBiomass2, biomassAddress: biomassAddress2 } = await matchBids(bids.length - 1, asks.length - 1, bids, asks, agentsBattery, agentBiomass, biomassAddress, intersection);
+            bids = unfilledBids;
+            asks = unfilledAsks;
+            agentsBattery = agentsBattery2;
+            agentBiomass = agentBiomass2;
+            biomassAddress = biomassAddress2;
 
-                let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
-                objSeller.agent.discharge(asks[i].amount);
-                objSeller.agent.addSuccessfulAsk(asks[i].amount);
-
-                //CHECK HOW TO INTRODUCE ACKNOWLEDGEMENT OF ASKS FOR BIOMASS
-                
-            }
-
-            let localUnfilledBids = bids.filter( el => {
-                if (paidBids.indexOf( el ) < 0) {
-                    return el.address;
+            //take care of unfilled bids or asks
+            if(bids.length > 0) {
+                for (let i = 0; i < bids.length; i++){
+                    let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[i].address; });
+                    obj.agent.discharge(bids[i].amount);
+                    unFilledBids.push(bids[i]);
                 }
-            });
+            }
+            if(asks.length > 0) {
+                for (let i = 0; i < asks.length; i++){
 
-            if(localUnfilledBids.length > 0){
-                for (let i=0; i < localUnfilledBids.length; i++){
-                    let obj = agentsBattery.find(function (obj) { return obj.agentAccount === localUnfilledBids[i].address; });
-                    obj.agent.discharge(localUnfilledBids[i].amount);
-                    unFilledBids.push(localUnfilledBids[i]);
+                    if( asks[i].address == biomassAddress) {
+                        agentBiomass.addUnsuccessfulAsk(asks[i]);
+                    }
+                    else {
+                        let obj = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
+                        obj.agent.discharge(asks[i].amount);
+                        unFilledAsks.push(asks[i]);
+                    }
                 }
             }
 
@@ -172,6 +162,7 @@ async function init() {
         }
         else if (bids.length < 2  || asks.length  < 2) {
             numberOfBids.push(bids.length);
+
             //if there isn't enough asks and bids to formulate a closing price, 
             //make sure to notify agents that their bids didn't go through and therefore need to charge or discharge their batteries
             for (let i=0; i < bids.length; i++){
@@ -179,11 +170,19 @@ async function init() {
                 let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[i].address; });
                 obj.agent.discharge(bids[i].amount);
             }
+
             for (let i=0; i < asks.length; i++) {
-                unFilledAsks.push(asks[i]);
-                let obj = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
-                obj.agent.charge(asks[i].amount);
+
+                if ( asks[i].address == biomassAddress) {
+                    unFilledAsks.push(asks[i]);
+                    agentBiomass.addUnsuccessfulAsk(asks[i]);
+                } else {
+                    unFilledAsks.push(asks[i]);
+                    let obj = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
+                    obj.agent.charge(asks[i].amount);
+                }
             }
+
             for (let j = 0; j < agentsBattery.length; j++) {
                 agentsBattery[j].agent.historicalPrices[i] = 0; //no trade was done on this time slot, therefore attribute 0
             }
@@ -195,7 +194,11 @@ async function init() {
     }
 
     let agentBalanceAverage = new Array();
+
+    //biomass
     let biomassBalance = new Array();
+    let biomassAskAmount = new Array();
+
     
     let history = agentsBattery[0].agent.historicalPrices;
     let aggActualDemand =  new Array();
@@ -235,8 +238,6 @@ async function init() {
     const sumPrices= history.reduce((a, b) => a + b, 0);
     const averagePrices = sumPrices/simDuration;
     console.log('average of prices', averagePrices);
-    console.log('sim duration', simDuration);
-    console.log('total number of bids', numberOfBids);
 
     //Calculating Parameters from simulation to plot
     //
@@ -259,6 +260,14 @@ async function init() {
         historicalPricesPlot[i] = convertWeiToPounds(agentsBattery[0].agent.historicalPrices[i]);
 
         biomassBalance.push(agentBiomass.balanceHistory[i]);
+        
+        if ( agentBiomass.successfulAskHistory[i].length > 0 ) {
+            if( gentBiomass.successfulAskHistory[i].timeRow == i){
+                biomassAskAmount[i] = agentBiomass.successfulAskHistory[i].amount;
+            } else {
+                biomassAskAmount[i] = 0;
+            }
+        }
 
         for (let j = 0; j < agentsBattery.length; j++) {
             demand.push(agentsBattery[j].agent.historicalDemand[i].demand);
@@ -368,8 +377,8 @@ async function init() {
         //calc for successful bids (the ones actually went through where there was a transaction of ether)
         if(successfulBidsGas.length > 0) {
             let succesfulBidsSumCostsPounds = succesfulBidsSumCosts.reduce((a, b) => a + b, 0);
-            let bidsAmountPoundsAveraged = await convertArrayWeiToPounds(successfulBidsAmount);
-            let bidsGasPoundsAveraged = await convertArrayGasToPounds(successfulBidsGas);
+            let bidsAmountPoundsAveraged = await convertArrayWeiToPounds(successfulBidsAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
+            let bidsGasPoundsAveraged = await convertArrayGasToPounds(successfulBidsGas, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER);
             successfulBidsTotalCost[i] = succesfulBidsSumCostsPounds;
             successfulBidsAggAmount[i] = bidsAmountPoundsAveraged;
             successfulBidsAggGas[i] = bidsGasPoundsAveraged;
@@ -383,8 +392,8 @@ async function init() {
         //calc the national grid purchases, amount, gas consumed and frequency
         if(nationalGridBidsGas.length > 0) {
             let nationalGridSumCostsPounds = nationalGridSumCosts.reduce((a, b) => a + b, 0);
-            let nationalGridBidsAmountPounds = await convertArrayWeiToPounds(nationalGridBidsAmount);
-            let nationalGridBidsGasPounds = await convertArrayGasToPounds(nationalGridBidsGas);
+            let nationalGridBidsAmountPounds = await convertArrayWeiToPounds(nationalGridBidsAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
+            let nationalGridBidsGasPounds = await convertArrayGasToPounds(nationalGridBidsGas, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER);
             nationalGridBidsAggAmount[i] = nationalGridBidsAmountPounds;
             nationalGridBidsAggGas[i] = nationalGridBidsGasPounds;
             nationalGridTotalCost[i] = nationalGridSumCostsPounds;
@@ -495,6 +504,7 @@ async function init() {
             cost_transaction: transactionCostAvg[i],
             trading_volume: successfulBidsAggAmount[i],
             nat_grid_volume: nationalGridBidsAggAmount[i],
+            biomass_volume: biomassAskAmount,
             no_total_transactions: totalNumberTransactions[i],
             no_trades_market:  successfulBidsGas.length,
             no_market_transactions: numberMarketTransactions,
@@ -536,43 +546,43 @@ async function init() {
     var trace1 = {
         x: timeArray,
         y: historicalPricesPlot,
-        name: "Historical Prices",
+        name: "Historical Prices (p/kWh)",
         yaxis: "y1",
         type: "scatter"
     }
     var trace2 = {
         x: timeArray,
         y: aggregatedDemand,
-        name: "Aggregated Demand",
+        name: "Aggregated Demand (Wh)",
         yaxis: "y2",
         type: "scatter"
     }
     var trace3 = {
         x: timeArray,
         y: aggregatedSupply,
-        name: "Aggregated Supply",
+        name: "Aggregated Supply (Wh)",
         yaxis: "y2",
         type: "scatter"
     }
     var trace4 = {
         x: timeArray,
-        y: transactionCostBid,
-        name: "Bid Transaction Cost",
+        y: biomassBalanceHistory,
+        name: "biomass Balance History",
         yaxis: "y3",
         type: "scatter"
     }
     var trace5 = {
         x: timeArray,
-        y: transactionCostAsk,
-        name: "Ask Transaction Cost",
-        yaxis: "y3",
+        y: chargeHistoryAggregated,
+        name: "Charge history aggregated",
+        yaxis: "y2",
         type: "scatter"
     }
     var trace6 = {
         x: timeArray,
-        y: amountBidsPerT,
-        name: "# of Transactions",
-        yaxis: "y4",
+        y: biomassAskAmount,
+        name: "Biomass Volume",
+        yaxis: "y3",
         type: "scatter"
     }
     var data = [trace1, trace2, trace3, trace4, trace5, trace6];
@@ -589,7 +599,7 @@ async function init() {
           anchor: "x"
         },
         yaxis3: {
-            title: "Gas Cost (£)",
+            title: "Gas",
             titlefont: {color: "#d62728"},
             tickfont: {color: "#d62728"},
             anchor: "x",
@@ -598,24 +608,24 @@ async function init() {
             anchor: "free",
             position: 0,
             showgrid: false
-        },
-        yaxis4: {
-            title: "# Transactions",
-            titlefont: {color: "#d62728"},
-            tickfont: {color: "#d62728"},
-            anchor: "x",
-            overlaying: "y",
-            side: "left",
-            anchor: "free",
-            position: 1,
-            showgrid: false
         }
+        // yaxis4: {
+        //     title: "# Transactions",
+        //     titlefont: {color: "#d62728"},
+        //     tickfont: {color: "#d62728"},
+        //     anchor: "x",
+        //     overlaying: "y",
+        //     side: "left",
+        //     anchor: "free",
+        //     position: 1,
+        //     showgrid: false
+        // }
     };
 
-    // var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries", fileopt: "overwrite"};
-    // plotly.plot(data, graphOptions, function (err, msg) {
-    //     console.log(msg);
-    // });
+    var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries (including biomass)", fileopt: "overwrite"};
+    plotly.plot(data, graphOptions, function (err, msg) {
+        console.log(msg);
+    });
 
 };
 
@@ -645,41 +655,8 @@ function average(data){
     return avg;
 }
 
-function convertArrayGasToPounds(array) {
-    let sumCost = array.reduce((a, b) => a + b, 0);
-    let calcPrice = sumCost * GASPRICE;
-    let costEther = calcPrice / WEI_IN_ETHER;
-    let costPounds = costEther * (+ priceOfEther.toFixed(18));
-    costPounds = + costPounds.toFixed(3);
-    return costPounds;
-}
-
-function convertArrayWeiToPounds(arrayWei) {
-    let sumCost = arrayWei.reduce((a, b) => a + b, 0);
-    let costEther = sumCost / WEI_IN_ETHER;
-    let costPounds = costEther * (+ priceOfEther.toFixed(18));
-    costPounds = + costPounds.toFixed(3);
-    return costPounds;
-}
-
-function convertWeiToPounds(weiValue) {
-    let costEther = weiValue / WEI_IN_ETHER;
-    let costPounds = costEther * ( + priceOfEther.toFixed(18));
-    costPounds = + costPounds.toFixed(3);
-    return costPounds;
-}
-
-function convertGasToPounds(gasCost) {
-    let calcPrice = gasCost * GASPRICE;
-    let costEther = calcPrice / WEI_IN_ETHER;
-    let costPounds = costEther * ( + priceOfEther.toFixed(18));
-    costPounds = + costPounds.toFixed(3);
-    return costPounds;
-}
-
 async function loadData(inputFile){
     let resultSet = await readCSV(inputFile);
-    //console.log('resultset', resultSet);
     return resultSet;
 }
 
@@ -710,11 +687,11 @@ async function getFiles() {
     return { metaData, householdHistoricData};
 }
 
-async function createAgents(metaData, householdHistoricData, biomassData, batteryCapacity, batteryBool) {
+async function createAgents(metaData, householdHistoricData, biomassData, batteryCapacity, batteryBool, BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX) {
     console.log('creating agents...');
     let agents = new Array();
     let agentNationalGrid = new AgentNationalGrid();
-    let agentBiomass = new AgentBiomass();
+    let agentBiomass = new AgentBiomass(BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX);
 
     agentBiomass.loadData(biomassData);
 
@@ -729,7 +706,7 @@ async function createAgents(metaData, householdHistoricData, biomassData, batter
         
         await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item], id [item]);
         let newAgent = {
-            id: id [item ],
+            id: id[item],
             agent,
             agentAccount
         }
@@ -781,6 +758,7 @@ async function getExchangeBids() {
     return { bids, asks };
 }
 
+//decreasing amount
 function sortByAmount(a, b) {
     if (a.amount === b.amount) {
         return 0;
@@ -851,4 +829,87 @@ function indexOfSmallest(a) {
      if (a[i] < a[lowest]) lowest = i;
     }
     return lowest;
+}
+
+function removeFirsRow(householdHistoricData) { 
+    let tempArray = new Array();
+   
+       for(let i = 1; i < householdHistoricData.length; i++) {
+           tempArray.push(householdHistoricData[i])
+       }
+   
+    return tempArray;
+   }
+   
+function generateBiomassData(householdHistoricData) {
+    let biomassData = Array(householdHistoricData[0].length).fill(0);
+    
+    for(let i = 0; i < householdHistoricData.length; i++) {
+
+    
+        let singleHousehold = removeFirsRow(householdHistoricData[i]);
+
+        for(let j = 0; j < singleHousehold.length; j++) {
+
+            biomassData[j] += singleHousehold[j][1] * 0.9; //satisfy 90% of their needs
+
+        }
+    }
+    return biomassData;
+}
+
+async function matchBids(bid_index, ask_index, bids, asks, agentsBattery, agentBiomass, biomassAddress, intersection) {
+    if (bids.length == 0 || asks.length == 0) {
+        return { bids, asks, agentsBattery, agentBiomass, biomassAddress };
+    }
+
+    let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[bid_index].address; });
+
+    if(bids[bid_index].amount - asks[ask_index].amount >= 0){
+        let remainder = bids[bid_index].amount - asks[ask_index].amount;
+        let calcAmount = bids[bid_index].amount - remainder;
+
+        await obj.agent.sendFunds(intersection[1], calcAmount, asks[ask_index].address );
+
+        if (asks[ask_index].address == biomassAddress) {
+            agentBiomass.addSuccessfulAsk(asks[ask_index].amount);
+        } else {
+            let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[ask_index].address; });
+            objSeller.agent.discharge(asks[ask_index].amount);
+            objSeller.agent.addSuccessfulAsk(asks[ask_index].amount);
+        }  
+
+        bids[bid_index].amount = remainder;
+
+        if(remainder==0){
+            bids.splice(bid_index, 1);
+        }
+        asks.splice(ask_index, 1);
+        
+        return (matchBids(bids.length-1, asks.length-1, bids, asks, agentsBattery, agentBiomass, biomassAddress, intersection));
+    }
+
+    if(bids[bid_index].amount - asks[ask_index].amount < 0){
+        let remainder = asks[ask_index].amount - bids[bid_index].amount;
+        let calcAmount = asks[ask_index].amount - remainder;
+        
+        await obj.agent.sendFunds(intersection[1], calcAmount, asks[ask_index].address );
+
+        if (asks[ask_index].address == biomassAddress) {
+            agentBiomass.addSuccessfulAsk(asks[ask_index].amount);
+        } else {
+            let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[ask_index].address; });
+            objSeller.agent.discharge(asks[ask_index].amount);
+            objSeller.agent.addSuccessfulAsk(asks[ask_index].amount);
+        } 
+
+        asks[ask_index].amount = remainder;
+
+        if(remainder == 0){
+            asks.splice(ask_index, 1);
+        }
+        bids.splice(bid_index, 1);
+        
+        return (matchBids(bids.length-1, asks.length-1, bids, asks, agentsBattery, agentBiomass, biomassAddress, intersection)); 
+    }
 }

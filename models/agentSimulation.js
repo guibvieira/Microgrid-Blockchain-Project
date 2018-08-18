@@ -35,6 +35,7 @@ class Agent{
         this.nationalGridAddress = 0;
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
+        this.WEI_IN_ETHER = 1000000000000000000;
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -169,8 +170,15 @@ class Agent{
         return transactionReceipt;
     }
 
+    convertWeiToPounds(weiValue) {
+        let costEther = weiValue / this.WEI_IN_ETHER;
+        let costPounds = costEther * ( + this.priceOfEther.toFixed(18));
+        costPounds = + costPounds.toFixed(3);
+        return costPounds;
+    }
+
     async placeBuy(price, amount, date){
-        console.log('placing buy');
+        //console.log(`placing buy for ${amount} at price ${price} in household ${this.householdID}`);
         let transactionReceipt = await exchange.methods.placeBid(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'
@@ -184,12 +192,11 @@ class Agent{
             transactionCost: transactionReceipt.gasUsed
         }
         this.bidHistory.push(newBid);
-        console.log('bidHistory', this.bidHistory.length);
         return true;
     }
 
     async placeAsk(price, amount, date){
-        console.log('placing ask');
+        console.log(`placing ask from ${this.householdID}, of ${amount}`);
         let transactionReceipt = await exchange.methods.placeAsk(price, amount, date).send({
             from: this.ethereumAddress,
             gas: '3000000'

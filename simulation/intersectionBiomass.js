@@ -1,5 +1,10 @@
 
 const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
+const regression = require('regression');
+const algebra = require('algebra.js');
+var Fraction = algebra.Fraction;
+var Expression = algebra.Expression;
+var Equation = algebra.Equation;
 
 
 
@@ -33,11 +38,25 @@ function getIntersection(x11, y11, x12, y12, x21, y21, x22, y22) {
     return [intx, slope1 * intx + yint1];
 }
 
+function setCharAt(str,index,chr) {
+    if(index > str.length-1) return str;
+    return str.substr(0,index) + chr + str.substr(index+1);
+}
+
+function nthIndex(str, pat, n){
+    var L= str.length, i= -1;
+    while(n-- && i++<L){
+        i= str.indexOf(pat, i);
+        if (i < 0) break;
+    }
+    return i;
+}
+
 function calculateIntersection(array1, array2){
     
     let array1DescendingPrice = [];
     let array2AscendingPrice = [];
-    array1DescendingPrice = array1.sort(sortAscending); // bids
+    array1DescendingPrice = array1.sort(sortDescending); // bids
     array2AscendingPrice = array2.sort(sortAscending); //asks
     
     let x11 = array1DescendingPrice[0].amount;
@@ -52,12 +71,141 @@ function calculateIntersection(array1, array2){
 
     let intersection = getIntersection(x11, y11, x12, y12, x21, y21, x22, y22);
 
+    let array1x = new Array();
+    let array1y = new Array();
+    let array2x = new Array();
+    let array2y = new Array();
+
+
+    let array1Polynomial = new Array();
+    let array2Polynomial = new Array();
+
+
+    let array1xsub = Array(array1DescendingPrice.length).fill(0);
+    let array2xsub = Array(array2AscendingPrice.length).fill(0);
+
+    
+
+    for(let i = 0; i< array1DescendingPrice.length; i++) {
+        for(let j = 0; j <= i; j++) {
+            array1xsub[i] += array1DescendingPrice[j].amount;
+        }
+        array1x.push(array1DescendingPrice[i].amount);
+        array1y.push(array1DescendingPrice[i].price);
+        array1Polynomial.push(new Array(array1xsub[i], array1DescendingPrice[i].price));
+        
+    }
+
+    
+    for(let i = 0; i< array2AscendingPrice.length; i++) {
+        for(let j = 0; j <= i; j++) {
+            array2xsub[i] += array2AscendingPrice[j].amount;
+        }
+
+        array2x.push(array2AscendingPrice[i].amount);
+        array2y.push(array2AscendingPrice[i].price);
+       
+        array2Polynomial.push(new Array(array2xsub[i], array2AscendingPrice[i].price));
+    }
+
+    const result1 = regression.polynomial(array1Polynomial, { order: 3 });
+    const result2 = regression.polynomial(array2Polynomial, { order: 3 });
+
+    let equation1 = result1.string;
+    let equation2 = result2.string;
+
+    equation1 = equation1.replace("y =", "");
+    for(let j = 0; j < 6; j++  ){
+        let pos1 = nthIndex(equation1, "+", j);
+    
+        for(let i = pos1; i <= pos1 + 3; i++) {
+            if(equation1[i] == '-') {
+                let diff = i - pos1;
+                console.log(equation1[i]);
+                equation1 = setCharAt(equation1, i-diff, '');
+            }
+        }
+    }
+    
+    equation2 = equation2.replace("y =", "");
+    for(let j = 0; j < 6; j++  ){
+        let pos2 = nthIndex(equation2, "+", j);
+    
+        for(let i = pos2; i <= pos2 + 3; i++) {
+            if(equation2[i] == '-') {
+                let diff = i - pos2;
+                console.log(equation2[i]);
+                equation2 = setCharAt(equation2, i-diff, '');
+            }
+        }
+    }
+    
+    let equationFinal = `${equation1} = ${equation2}`;
+    console.log('equationFinal', equationFinal);
+    //put into equation and solve
+    var eq = new algebra.parse(equationFinal);
+    console.log(eq.toString());
+    var ans = eq.solveFor("x");
+    console.log('ans', ans);
+
+    let possibleIntersections = [];
+    for(let i = 0; i < ans.length; i++) {
+        if(ans[i] > 0) {
+            console.log('value ans[i]', ans[i]);
+            console.log('prediction', result1.predict(ans[i]));
+            let tempResult = result1.predict(ans[i])
+            possibleIntersections.push( parseInt( tempResult[1]));
+        }
+    }
+    console.log('final intersection', Math.min(possibleIntersections));
+    intersection[1] = Math.min(possibleIntersections);
+
+    console.log('intersection price', intersection[1]);
+
+
+    // var trace1 = {
+    //         x: array1xsub,
+    //         y: array1y,
+    //         name: "bids",
+    //         type: "scatter"
+    //     }
+    // var trace2 = {
+    //         x: array2xsub,
+    //         y: array2y,
+    //         name: "asks",
+    //         type: "scatter"
+    //     }
+    // var data = [trace1, trace2];
+    // var layout = {
+    //         title: 'Bids and Asks Intersection',
+    //         xaxis: {
+    //         title: 'Amount of elect. (Wh)',
+    //         titlefont: {
+    //             family: 'Courier New, monospace',
+    //             size: 18,
+    //             color: '#7f7f7f'
+    //         }
+    //         },
+    //         yaxis: {
+    //         title: 'Price (p/kWh)',
+    //         titlefont: {
+    //             family: 'Courier New, monospace',
+    //             size: 18,
+    //             color: '#7f7f7f'
+    //         }
+    //         }
+    // };
+
+    // var graphOptions = {layout: layout, filename: "prediction error", fileopt: "overwrite"};
+    // plotly.plot(data, graphOptions, function (err, msg) {
+    //     console.log(msg);
+    // });
+
     return intersection;
 }
-module.exports = calculateIntersection;
 
 function sortDescending(a, b) {
-    if (a.amount === b.price) {
+    if (a.price === b.price) {
         return 0;
     }
     else {
@@ -66,11 +214,11 @@ function sortDescending(a, b) {
 }
 
 function sortAscending(a, b) {
-    if (a.amount === b.amount) {
+    if (a.price === b.price) {
         return 0;
     }
     else {
-        return (a.amount < b.amount) ? -1 : 1;
+        return (a.price < b.price) ? -1 : 1;
     }
 }
 
@@ -175,7 +323,7 @@ function sortFunctionByAmount(a, b) {
 //         console.log(msg);
 //     });
 
-
+module.exports = calculateIntersection;
 
 
 // (function () {

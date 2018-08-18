@@ -5,36 +5,77 @@ web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
 let fastcsv = require('fast-csv');
 var fs = require('fs');
 
-    // tempArray = [ [[' hour'], ['average demand'], ['average supply']],
-    //            [[1], [5],[10]],
-    //             [[2],[3],[4]],
-    //             [[5],[6],[7]],
-    //             [[8],[9],[10]]];
+const regression = require('regression');
+const algebra = require('algebra.js');
+var Fraction = algebra.Fraction;
+var Expression = algebra.Expression;
+var Equation = algebra.Equation;
 
-    // var fast_csv = fastcsv.createWriteStream();
-    // var writeStream = fs.createWriteStream("outputfile.csv");
-    // fast_csv.pipe(writeStream);
+a= 320918622427389.06;
+b= parseInt(a);
+console.log(b);
+console.log('type of b', typeof b);
+// String.prototype.replaceAt=function(index, replacement) {
+//     return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
+// }
 
-    // for(var i = 0; i < tempArray.length; i++){
-    //     let arrayWrite = new Array();
-    //     for(let j=0; j< tempArray[0].length; j++){
-    //     arrayTemp2 = new Array();
-    //     arrayWrite.push(tempArray[i][j]);
-    //     // fast_csv.write( [ tempArray[i][j] ] );             //each element inside bracket
-    //     }
-    //     fast_csv.write( [ arrayWrite ] );
-    //     }
-    // fast_csv.end();
+// function setCharAt(str,index,chr) {
+//     if(index > str.length-1) return str;
+//     return str.substr(0,index) + chr + str.substr(index+1);
+// }
 
-    let array = [["0", "0", "0", "0"], [0,1,2,3], [0,1,2,3]];
-    function deleteRow(arr, row) {
-        arr = arr.slice(0); // make copy
-        arr.splice(row - 1, 1);
-        return arr;
-     }
-    let arr = deleteRow(array, 0)
-    console.log('array', arr);
-    console.log(array.length)
+// function nthIndex(str, pat, n){
+//     var L= str.length, i= -1;
+//     while(n-- && i++<L){
+//         i= str.indexOf(pat, i);
+//         if (i < 0) break;
+//     }
+//     return i;
+// }
+
+// let equation1 = 'y = 37707.02x^3 + -112375145.48x^2 +36716343836.13x + 348378555548030.9';
+// let equation2 = 'y = -8.3x^3 + 2508688.41x^2 + -186675837048.8x + 314158018452870.25';
+// console.log('before modification equation1:', equation1);
+// console.log('before modification equation2', equation2);
+
+// //TRY AGGREGATING THE VALUES OF BIDS AND ASKS TO CORRECT GRAPH (PAPER)
+
+// equation1 = equation1.replace("y =", "");
+// for(let j = 0; j < 6; j++  ){
+//     let pos1 = nthIndex(equation1, "+", j);
+
+//     for(let i = pos1; i <= pos1 + 3; i++) {
+//         if(equation1[i] == '-') {
+//             let diff = i - pos1;
+//             console.log(equation1[i]);
+//             equation1 = setCharAt(equation1, i-diff, '');
+//         }
+//     }
+// }
+
+// equation2 = equation2.replace("y =", "");
+// for(let j = 0; j < 6; j++  ){
+//     let pos2 = nthIndex(equation2, "+", j);
+
+//     for(let i = pos2; i <= pos2 + 3; i++) {
+//         if(equation2[i] == '-') {
+//             let diff = i - pos2;
+//             console.log(equation2[i]);
+//             equation2 = setCharAt(equation2, i-diff, '');
+//         }
+//     }
+// }
+// console.log('equation1 after modification', equation1);
+// console.log('equation2 after modification', equation2);
+
+// let equationFinal = `${equation1} = ${equation2}`;
+// console.log('equation final', equationFinal);
+// //put into equation and solve
+// var eq = new algebra.parse(equationFinal);
+// console.log(eq.toString());
+// var ans = eq.solveFor("x");
+
+// console.log('answer', ans);
 
 // var address1 = {id: 124, agent: 'bla', address: 0xb181FB52b6e5Ee5915fdB3ad678E0b8a753C3bd3};
 // var addressx = address1;
