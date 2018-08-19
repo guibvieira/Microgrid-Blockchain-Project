@@ -58,19 +58,21 @@ function calculateIntersection(array1, array2){
     let array2AscendingPrice = [];
     array1DescendingPrice = array1.sort(sortDescending); // bids
     array2AscendingPrice = array2.sort(sortAscending); //asks
+    console.log('bids', array1DescendingPrice);
+    console.log('asks',array2AscendingPrice );
     
-    let x11 = array1DescendingPrice[0].amount;
-    let y11 = array1DescendingPrice[0].price;
-    let x12 = array1DescendingPrice[array1DescendingPrice.length-1].amount;
-    let y12 = array1DescendingPrice[array1DescendingPrice.length-1].price;
+    // let x11 = array1DescendingPrice[0].amount;
+    // let y11 = array1DescendingPrice[0].price;
+    // let x12 = array1DescendingPrice[array1DescendingPrice.length-1].amount;
+    // let y12 = array1DescendingPrice[array1DescendingPrice.length-1].price;
 
-    let x21 = array2AscendingPrice[0].amount;
-    let y21 = array2AscendingPrice[0].amount;
-    let x22 = array2AscendingPrice[array2AscendingPrice.length-1].amount;
-    let y22 = array2AscendingPrice[array2AscendingPrice.length-1].price;
+    // let x21 = array2AscendingPrice[0].amount;
+    // let y21 = array2AscendingPrice[0].amount;
+    // let x22 = array2AscendingPrice[array2AscendingPrice.length-1].amount;
+    // let y22 = array2AscendingPrice[array2AscendingPrice.length-1].price;
 
-    let intersection = getIntersection(x11, y11, x12, y12, x21, y21, x22, y22);
-
+    // let intersection = getIntersection(x11, y11, x12, y12, x21, y21, x22, y22);
+    let intersection =[ 0, 0];
     let array1x = new Array();
     let array1y = new Array();
     let array2x = new Array();
@@ -92,7 +94,7 @@ function calculateIntersection(array1, array2){
         }
         array1x.push(array1DescendingPrice[i].amount);
         array1y.push(array1DescendingPrice[i].price);
-        array1Polynomial.push(new Array(array1xsub[i], array1DescendingPrice[i].price));
+        array1Polynomial.push(new Array(array1xsub[i], array1y[i]));
         
     }
 
@@ -105,101 +107,97 @@ function calculateIntersection(array1, array2){
         array2x.push(array2AscendingPrice[i].amount);
         array2y.push(array2AscendingPrice[i].price);
        
-        array2Polynomial.push(new Array(array2xsub[i], array2AscendingPrice[i].price));
+        array2Polynomial.push(new Array(array2xsub[i], array2y[i]));
     }
-
-    const result1 = regression.polynomial(array1Polynomial, { order: 3 });
-    const result2 = regression.polynomial(array2Polynomial, { order: 3 });
+    console.log('array1Polynomial', array1Polynomial);
+    console.log('array2Polynomial', array2Polynomial);
+    const result1 = regression.polynomial(array1Polynomial, { order: 1 });
+    const result2 = regression.polynomial(array2Polynomial, { order: 1 });
+    const resultLinear = regression.regression
 
     let equation1 = result1.string;
     let equation2 = result2.string;
 
+    equation1 = equation1.replace(/\+ -/g, "-");
     equation1 = equation1.replace("y =", "");
-    for(let j = 0; j < 6; j++  ){
-        let pos1 = nthIndex(equation1, "+", j);
-    
-        for(let i = pos1; i <= pos1 + 3; i++) {
-            if(equation1[i] == '-') {
-                let diff = i - pos1;
-                console.log(equation1[i]);
-                equation1 = setCharAt(equation1, i-diff, '');
-            }
-        }
-    }
-    
+
+    equation2 = equation2.replace(/\+ -/g, "-");
     equation2 = equation2.replace("y =", "");
-    for(let j = 0; j < 6; j++  ){
-        let pos2 = nthIndex(equation2, "+", j);
-    
-        for(let i = pos2; i <= pos2 + 3; i++) {
-            if(equation2[i] == '-') {
-                let diff = i - pos2;
-                console.log(equation2[i]);
-                equation2 = setCharAt(equation2, i-diff, '');
-            }
-        }
-    }
     
     let equationFinal = `${equation1} = ${equation2}`;
-    console.log('equationFinal', equationFinal);
+    //console.log('equation Final', equationFinal);
+    
     //put into equation and solve
     var eq = new algebra.parse(equationFinal);
-    console.log(eq.toString());
     var ans = eq.solveFor("x");
-    console.log('ans', ans);
 
     let possibleIntersections = [];
-    for(let i = 0; i < ans.length; i++) {
-        if(ans[i] > 0) {
-            console.log('value ans[i]', ans[i]);
-            console.log('prediction', result1.predict(ans[i]));
-            let tempResult = result1.predict(ans[i])
-            possibleIntersections.push( parseInt( tempResult[1]));
-        }
+    ans  =  ans.numer  / ans.denom;
+
+    let tempResult = result1.predict(ans);
+    console.log('tempresult', tempResult);
+    intersection = tempResult;
+
+    // for(let i = 0; i < ans.length; i++) {
+    //     if(ans > 0) {
+    //         let tempResult = result1.predict(ans);
+    //         console.log('tempresult', tempResult);
+    //         if(tempResult[1] > 0) {
+    //             possibleIntersections.push( parseInt( tempResult[1]));
+    //         }
+    //     }
+    // }
+    //console.log('possible intersections', possibleIntersections)
+    //let minimum = Math.min(...possibleIntersections);
+    let minimum = tempResult[1];
+    
+    console.log('minimum', minimum);
+    if(minimum == Infinity || minimum == undefined) {
+        minimum = 240000000000000;
     }
-    console.log('final intersection', Math.min(possibleIntersections));
-    intersection[1] = Math.min(possibleIntersections);
+    console.log('parse int result', parseInt(minimum));
+    intersection[1] = parseInt(minimum);
+    console.log('intersection[1]', intersection[1]);
 
-    console.log('intersection price', intersection[1]);
 
 
-    // var trace1 = {
-    //         x: array1xsub,
-    //         y: array1y,
-    //         name: "bids",
-    //         type: "scatter"
-    //     }
-    // var trace2 = {
-    //         x: array2xsub,
-    //         y: array2y,
-    //         name: "asks",
-    //         type: "scatter"
-    //     }
-    // var data = [trace1, trace2];
-    // var layout = {
-    //         title: 'Bids and Asks Intersection',
-    //         xaxis: {
-    //         title: 'Amount of elect. (Wh)',
-    //         titlefont: {
-    //             family: 'Courier New, monospace',
-    //             size: 18,
-    //             color: '#7f7f7f'
-    //         }
-    //         },
-    //         yaxis: {
-    //         title: 'Price (p/kWh)',
-    //         titlefont: {
-    //             family: 'Courier New, monospace',
-    //             size: 18,
-    //             color: '#7f7f7f'
-    //         }
-    //         }
-    // };
+    var trace1 = {
+            x: array1xsub,
+            y: array1y,
+            name: "bids",
+            type: "scatter"
+        }
+    var trace2 = {
+            x: array2xsub,
+            y: array2y,
+            name: "asks",
+            type: "scatter"
+        }
+    var data = [trace1, trace2];
+    var layout = {
+            title: 'Bids and Asks Intersection',
+            xaxis: {
+            title: 'Amount of elect. (Wh)',
+            titlefont: {
+                family: 'Courier New, monospace',
+                size: 18,
+                color: '#7f7f7f'
+            }
+            },
+            yaxis: {
+            title: 'Price (p/kWh)',
+            titlefont: {
+                family: 'Courier New, monospace',
+                size: 18,
+                color: '#7f7f7f'
+            }
+            }
+    };
 
-    // var graphOptions = {layout: layout, filename: "prediction error", fileopt: "overwrite"};
-    // plotly.plot(data, graphOptions, function (err, msg) {
-    //     console.log(msg);
-    // });
+    var graphOptions = {layout: layout, filename: "prediction error", fileopt: "overwrite"};
+    plotly.plot(data, graphOptions, function (err, msg) {
+        console.log(msg);
+    });
 
     return intersection;
 }

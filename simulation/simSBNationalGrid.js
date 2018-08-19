@@ -283,7 +283,7 @@ async function init() {
 
             //get bids that were successful 
             for(let k = 0; k < agentsBattery[j].agent.successfulBidHistory.length; k++) {
-                if ( agentsBattery[j].agent.nationalGridPurchases[k].timeRow == i) {
+                if ( agentsBattery[j].agent.successfulBidHistory[k].timeRow == i) {
                 successfulBidsGas.push(agentsBattery[j].agent.successfulBidHistory[k].transactionCost);
                 successfulBidsAmount.push(agentsBattery[j].agent.successfulBidHistory[k].transactionAmount);
                 succesfulBidsSumCosts.push(convertGasToPounds(agentsBattery[j].agent.successfulBidHistory[k].transactionCost));
