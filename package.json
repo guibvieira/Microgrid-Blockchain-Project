@@ -9,7 +9,7 @@
     "reset": "rm -rf node_modules/ && npm install",
     "deploy": "node ./ethereum/deploy.js",
     "compile": "node ./ethereum/compile.js",
-    "sim": "node ./simulation/simulationSingleBid.js"
+    "sim": "node simulation/simSBBiomass.js"
   },
   "author": "",
   "license": "ISC",

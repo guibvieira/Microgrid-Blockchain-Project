@@ -11,11 +11,18 @@ var Fraction = algebra.Fraction;
 var Expression = algebra.Expression;
 var Equation = algebra.Equation;
 
-a= 320918622427389.06;
-b= parseInt(a);
-console.log(b);
-console.log('type of b', typeof b);
-// String.prototype.replaceAt=function(index, replacement) {
+const GASPRICE = 2000000000; //wei
+const simulationDays = 1;  // input
+const PRICE_OF_ETHER = 250; 
+const NATIONAL_GRID_PRICE = 0.1437; //input
+const BIOMASS_PRICE_MIN = 0.06; //input
+const BIOMASS_PRICE_MAX = 0.12; //input
+const WEI_IN_ETHER = 1000000000000000000;
+
+let costPounds = 496358625023;
+let result=  costPounds.toFixed(3);
+
+console.log('result', typeof result);// String.prototype.replaceAt=function(index, replacement) {
 //     return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
 // }
 
@@ -33,49 +40,6 @@ console.log('type of b', typeof b);
 //     return i;
 // }
 
-// let equation1 = 'y = 37707.02x^3 + -112375145.48x^2 +36716343836.13x + 348378555548030.9';
-// let equation2 = 'y = -8.3x^3 + 2508688.41x^2 + -186675837048.8x + 314158018452870.25';
-// console.log('before modification equation1:', equation1);
-// console.log('before modification equation2', equation2);
-
-// //TRY AGGREGATING THE VALUES OF BIDS AND ASKS TO CORRECT GRAPH (PAPER)
-
-// equation1 = equation1.replace("y =", "");
-// for(let j = 0; j < 6; j++  ){
-//     let pos1 = nthIndex(equation1, "+", j);
-
-//     for(let i = pos1; i <= pos1 + 3; i++) {
-//         if(equation1[i] == '-') {
-//             let diff = i - pos1;
-//             console.log(equation1[i]);
-//             equation1 = setCharAt(equation1, i-diff, '');
-//         }
-//     }
-// }
-
-// equation2 = equation2.replace("y =", "");
-// for(let j = 0; j < 6; j++  ){
-//     let pos2 = nthIndex(equation2, "+", j);
-
-//     for(let i = pos2; i <= pos2 + 3; i++) {
-//         if(equation2[i] == '-') {
-//             let diff = i - pos2;
-//             console.log(equation2[i]);
-//             equation2 = setCharAt(equation2, i-diff, '');
-//         }
-//     }
-// }
-// console.log('equation1 after modification', equation1);
-// console.log('equation2 after modification', equation2);
-
-// let equationFinal = `${equation1} = ${equation2}`;
-// console.log('equation final', equationFinal);
-// //put into equation and solve
-// var eq = new algebra.parse(equationFinal);
-// console.log(eq.toString());
-// var ans = eq.solveFor("x");
-
-// console.log('answer', ans);
 
 // var address1 = {id: 124, agent: 'bla', address: 0xb181FB52b6e5Ee5915fdB3ad678E0b8a753C3bd3};
 // var addressx = address1;

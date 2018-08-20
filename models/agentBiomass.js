@@ -6,6 +6,7 @@ const web3 = new Web3 ( new Web3.providers.HttpProvider("http://localhost:8545")
 
 //calc functions
 const gaussian = require('./gaussian');
+const {convertArrayGasToPounds, convertArrayWeiToPounds, convertWeiToPounds, convertGasToPounds} = require('../simulation/conversions.js');
 
 //compiled contracts
 const exchange = require('../ethereum/exchange');
@@ -22,9 +23,10 @@ class AgentBiomass{
         this.generationData = new Array();
         this.successfulAskHistory = new Array();
         this.timeRow = 0;
-        this.priceOfEther = 250;
         this.biomassAddress = 0;
         this.unFilledAsks = new Array();
+        this.PRICE_OF_ETHER = 250; 
+        this.WEI_IN_ETHER = 1000000000000000000;
     }
 
     loadData(biomassData) {
@@ -64,10 +66,16 @@ class AgentBiomass{
     }
 
     async sellingLogic() {
+        //let price = await this.convertToWei(this.baseElectValue);
         //OR let price = this.formulatePrice(); for variation of prices
-        let price = await this.convertToWei(this.biomassPrice);
+        //let price1 = this.formulatePrice();
+        //let price2 = this.formulatePrice();
+        let price1 = await this.convertToWei(this.baseElectValue);
+        let price2 = await this.convertToWei( this.maxElectValue);
   
-        await this.placeAsk(price, this.generationData[this.timeRow].supply);
+  
+        await this.placeAsk(price1, this.generationData[this.timeRow].supply/2);
+        await this.placeAsk(price2, this.generationData[this.timeRow].supply/2);
     }
 
     addSuccessfulAsk(amount) {
@@ -83,6 +91,8 @@ class AgentBiomass{
 
     async placeAsk(price, amount){
         let date = (new Date()).getTime();
+
+        let checkPrice = convertWeiToPounds(price, this.WEI_IN_ETHER, this.PRICE_OF_ETHER);
 
         let transactionReceipt = await exchange.methods.placeAsk(price, amount, date).send({
             from: this.ethereumAddress,
@@ -101,7 +111,7 @@ class AgentBiomass{
     }
 
     async convertToWei(price) {
-        let calcPrice = (price / this.priceOfEther);
+        let calcPrice = (price / this.PRICE_OF_ETHER);
         calcPrice = + calcPrice.toFixed(18);
         price = await web3.utils.toWei(`${calcPrice}`, 'ether');
         price = parseInt(price);
@@ -110,7 +120,7 @@ class AgentBiomass{
 
     formulatePrice() {
         let {mean, stdev} = this.getDistributionParameters();
-        
+        let price = this.getCorrectValue(mean, stdev);
         //sometimes this returns defined, therefore while loop to prevent this
         while (price === undefined || price === null){
             price = this.getCorrectValue(mean, stdev);

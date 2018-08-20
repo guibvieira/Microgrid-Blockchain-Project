@@ -9,6 +9,7 @@ import web3 from '../ethereum/web3';
 
 class HouseholdIndex extends Component {
     static async getInitialProps() {
+        
         const households = await factory.methods.getDeployedHouseholds().call();
 
         console.log(households);

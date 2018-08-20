@@ -33,4 +33,4 @@ function getDistributionParameters(minPrice, maxPrice){
     return { mean, stdev }
 }
 
-module.exports = { gaussian, getDistributionParameters };
+module.exports = gaussian;

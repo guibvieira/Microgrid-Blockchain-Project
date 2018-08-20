@@ -7,7 +7,7 @@ web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
 const Agent = require('../models/agentSimulation.js');
 const AgentNationalGrid = require('../models/agentNationalGrid.js');
 const AgentBiomass = require('../models/agentBiomass.js');
-const plotly = require('plotly')("guibvieira", "oI36xfxoUbcdc5XR0pEK");
+const plotly = require('plotly')('guibvieiraProject', 'Whl2UptBOq1gMvQrRGHk');
 
 //compiled contracts
 //const factory = require('../ethereum/factory');
@@ -34,13 +34,13 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 1;  // input
+const simulationDays = 2;  // input
 const PRICE_OF_ETHER = 250; 
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.06; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputDayBiomass2.csv'; //input
+const csvResultsFileName = 'outputDayBiomass12_day.csv'; //input
 
 
 async function init() {
@@ -117,7 +117,6 @@ async function init() {
         if (bids.length >= 2  && asks.length  >= 2 ){
                    
             let intersection = calculateIntersection(bids, asks); //first is price, next is amount, lastly address
-            console.log('instersection', intersection[1]);
             let pricePounds = convertWeiToPounds(intersection[1], WEI_IN_ETHER, PRICE_OF_ETHER);
             console.log('price in pounds', pricePounds);
             let paidBids = new Array();
@@ -135,13 +134,15 @@ async function init() {
             // { bids2: bids, asks2, agentsBattery2, agentBiomass2, biomassAddress2 } = await matchBids(bids.length - 1, asks.length - 1);
             // bids = bids2;
             //match bids to asks until there are no more left, all settled at single price from 'intersection'
-
             let { bids: unfilledBids, asks: unfilledAsks, agentsBattery: agentsBattery2, agentBiomass: agentBiomass2, biomassAddress: biomassAddress2 } = await matchBids(bids.length - 1, asks.length - 1, bids, asks, agentsBattery, agentBiomass, biomassAddress, intersection);
             bids = unfilledBids;
             asks = unfilledAsks;
             agentsBattery = agentsBattery2;
             agentBiomass = agentBiomass2;
             biomassAddress = biomassAddress2;
+
+            // console.log('bids length after matching', bids.length);
+            // console.log('asks length after matching', asks.length);
 
             //take care of unfilled bids or asks
             if(bids.length > 0) {
@@ -221,10 +222,11 @@ async function init() {
     let successfulBidsAggAmount = new Array();
     let successfulBidsAggGas = new Array();
     let successfulBidsTotalCost = new Array();
-    let percentageMarketEnergyTrades = new Array();
+    let percentageNatGridEnergyTrades = new Array();
     let dailyVolume = new Array();
     let blackOutInstances = new Array();
     let hourlyExpenditure = new Array();
+    let nationalGridPurchasesDay = new Array();
 
     //averages parameters (for each agent)
     let averageNumberTransactions = new Array();
@@ -236,12 +238,15 @@ async function init() {
     let averageBidsDay = new Array();
 
 
+    let agent
+
     let simulationCSV = new Array();
     let csvData = new Array();
     
 
     const sumPrices= history.reduce((a, b) => a + b, 0);
-    const averagePrices = sumPrices/simDuration;
+    let averagePrices = sumPrices/simDuration;
+    averagePrices = convertWeiToPounds(parseInt(averagePrices), WEI_IN_ETHER, PRICE_OF_ETHER);
     console.log('average of prices', averagePrices);
 
     //Calculating Parameters from simulation to plot
@@ -266,15 +271,26 @@ async function init() {
 
         biomassBalance.push(agentBiomass.balanceHistory[i]);
         
-        if ( agentBiomass.successfulAskHistory[i].length > 0 ) {
-            if( gentBiomass.successfulAskHistory[i].timeRow == i){
-                biomassAskAmount[i] = agentBiomass.successfulAskHistory[i].amount;
-            } else {
-                biomassAskAmount[i] = 0;
-            }
+    
+        let biomassVolumeTemp = 0;
+
+        for( let j=0; j < agentBiomass.successfulAskHistory.length; j++  ){
+            if( agentBiomass.successfulAskHistory[j].timeRow == i){
+                biomassVolumeTemp += agentBiomass.successfulAskHistory[j].amount;
+            } 
         }
+        if(biomassVolumeTemp == 0){
+            biomassAskAmount.push(0);
+        }
+        else{
+            console.log('check biomassVolume ', biomassVolumeTemp);
+            biomassAskAmount.push(biomassVolumeTemp);
+        }
+        
+        
 
         for (let j = 0; j < agentsBattery.length; j++) {
+
             demand.push(agentsBattery[j].agent.historicalDemand[i].demand);
             supply.push(agentsBattery[j].agent.historicalSupply[i].supply);
 
@@ -413,12 +429,15 @@ async function init() {
         totalNumberTransactions.push(sumTransactions);
         let numberMarketTransactions = gasCostAsks.length + gasCostBids.length + successfulBidsGas.length;
         averageNumberTransactions.push(totalNumberTransactions[i] / agentsBattery.length);
+        //console.log('average number of transactions', averageNumberTransactions);
         
-        if(successfulBidsGas.length > 0) {
-            percentageMarketEnergyTrades.push( (successfulBidsGas.length / nationalGridBidsGas.length) * 100 );
+        if(successfulBidsGas.length > 0 && nationalGridBidsGas.length > 0) {
+            percentageNatGridEnergyTrades.push( (nationalGridBidsGas.length / successfulBidsGas.length ) * 100 );
+        } else if( successfulBidsGas.length > 0 && nationalGridBidsGas.length == 0) {
+            percentageNatGridEnergyTrades.push(0);
         }
         else if( successfulBidsGas.length == 0) {
-            percentageMarketEnergyTrades.push(0);
+            percentageNatGridEnergyTrades.push(0);
         }
 
         //suming up demand, supply and amount of aggregated charge
@@ -449,11 +468,13 @@ async function init() {
                 let calcAverageAsksDay = new Array();
                 let calcAverageBidsDay = new Array();
                 let calcTradingVolume = new Array();
+                let calcNationalGridTransactionDay = new Array();
 
                 for (let j = i - 24; j < i; j++){
 
                     calcAverageTransactions[j] = averageNumberTransactions[j];
                     calcAverageNatGridPurchases[j] = averageNationalGridPurchases[j];
+                    calcNationalGridTransactionDay[j] = nationalGridPurchases[i];
                     calcAverageAsksDay[j] = amountAsksPerT[j];
                     calcAverageBidsDay[j] = amountBidsPerT[j];
                     calcTradingVolume[j] = successfulBidsAggAmount[j];
@@ -475,7 +496,7 @@ async function init() {
                         averageExpenditureDay[i] = 0;
                     }
                 }
-
+                nationalGridPurchasesDay[i] = calcNationalGridTransactionDay.reduce((a, b) => a + b, 0);
                 dailyVolume[i] = calcTradingVolume.reduce((a, b) => a + b, 0);
                 averageNumberTransactionsDay[i] = calcAverageTransactions.reduce((a, b) => a + b, 0);
                 averageNationalGridPurchasesDay[i] = calcAverageNatGridPurchases.reduce((a, b) => a + b, 0);
@@ -512,15 +533,17 @@ async function init() {
             no_asks_market: amountAsksPerT[i],
             charge_history_agg: chargeHistoryAggregated[i],
             avg_expenditure_hourly: hourlyExpenditure[i],
-            avg_transactions_day: averageNumberTransactions[i],
+            avg_transactions_hourly: averageNumberTransactions[i],
             avg_bids_agent: amountBidsPerT[i] / agentsBattery.length,
             avg_asks_agent: amountAsksPerT[i] / agentsBattery.length,
             avg_bids_day: averageBidsDay[i],
             avg_asks_day: averageAsksDay[i],
             avg_cost_day_agent: averageExpenditureDay[i],
             avg_nat_grid_purchases_day: averageNationalGridPurchasesDay[i],
+            nat_grid_purchases_day: nationalGridPurchasesDay[i],
+            avg_transactions_hourly: averageNumberTransactionsDay[i],
             trading_daily_volume: dailyVolume[i],
-            percentage_Market_Trades: percentageMarketEnergyTrades[i],
+            percentage_Market_Trades: percentageNatGridEnergyTrades[i],
             black_Out_Instances: blackOutInstances[i]
 
         }

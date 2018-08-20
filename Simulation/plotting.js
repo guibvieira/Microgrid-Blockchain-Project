@@ -1,4 +1,4 @@
-const plotly = require('plotly')('guibvieira', 'oI36xfxoUbcdc5XR0pEK');
+const plotly = require('plotly')('guibvieiraProject', 'Whl2UptBOq1gMvQrRGHk');
 
 var trace1 = {
   x: [1, 2, 3],
@@ -45,25 +45,25 @@ var layout = {
     overlaying: "y",
     side: "left",
     position: 0
-  },
-  yaxis3: {
-    title: "yaxis3 title",
-    titlefont: {color: "#d62728"},
-    tickfont: {color: "#d62728"},
-    anchor: "x",
-    overlaying: "y",
-    side: "right",
-    position: 0.5
-  },
-  yaxis4: {
-    title: "yaxis4 title",
-    titlefont: {color: "#9467bd"},
-    tickfont: {color: "#9467bd"},
-    anchor: "free",
-    overlaying: "y",
-    side: "right",
-    position: 1
   }
+  // yaxis3: {
+  //   title: "yaxis3 title",
+  //   titlefont: {color: "#d62728"},
+  //   tickfont: {color: "#d62728"},
+  //   anchor: "x",
+  //   overlaying: "y",
+  //   side: "right",
+  //   position: 0.5
+  // },
+  // yaxis4: {
+  //   title: "yaxis4 title",
+  //   titlefont: {color: "#9467bd"},
+  //   tickfont: {color: "#9467bd"},
+  //   anchor: "free",
+  //   overlaying: "y",
+  //   side: "right",
+  //   position: 1
+  // }
 };
 var graphOptions = {layout: layout, filename: "multiple-axes-multiple", fileopt: "overwrite"};
 plotly.plot(data, graphOptions, function (err, msg) {
