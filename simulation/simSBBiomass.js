@@ -34,13 +34,13 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 1;  // input
+const simulationDays = 3;  // input
 const PRICE_OF_ETHER = 250; 
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.06; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputDayBiomass17_day.csv'; //input
+const csvResultsFileName = 'outputDayBiomass_test2.csv'; //input
 
 
 async function init() {
@@ -368,6 +368,7 @@ async function init() {
             //get NationalGrid Purchases
             for(let k=0; k < agentsBattery[j].agent.nationalGridPurchases.length; k++) {
                 if ( agentsBattery[j].agent.nationalGridPurchases[k].timeRow == i) {
+                    console.log('national grid purchases volume', agentsBattery[j].agent.nationalGridPurchases[k].quantity);
                     nationalGridBidsQuantity.push(agentsBattery[j].agent.nationalGridPurchases[k].quantity);
                     nationalGridBidsAmount.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionAmount);
                     nationalGridBidsGas.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionCost);
@@ -426,6 +427,7 @@ async function init() {
             tradingVolumeElect.push(0);
             biomassVolumeElect.push(0);
         }
+        console.log('trading volume elect', tradingVolumeElect[i]);
 
         //calc the national grid purchases, amount, gas consumed and frequency
         if(nationalGridBidsGas.length > 0) {
@@ -539,8 +541,6 @@ async function init() {
         dailyVolume = Array.from(dailyVolume, item => item || 0);
 
         
-        console.log(`
-         at time ${i} : ${sumCharge}`);
         let newCsvEntry = {
             time: i,
             agg_demand: aggregatedDemand[i],
@@ -551,7 +551,7 @@ async function init() {
             trading_volume: successfulBidsAggAmount[i],
             biomass_volume: biomassVolumePounds[i],
             nat_grid_volume: nationalGridBidsAggAmount[i],
-            trading_volume_elect: successfulBidsElect[i],
+            trading_volume_elect: tradingVolumeElect[i],
             biomass_volume_elect: biomassVolumeElect[i],
             nat_grid_volume_elect: nationalGridVolumeElect[i],
             no_total_transactions: totalNumberTransactions[i],
