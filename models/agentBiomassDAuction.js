@@ -29,6 +29,10 @@ class AgentBiomass{
         this.unFilledAsks = new Array();
         this.PRICE_OF_ETHER = 250; 
         this.WEI_IN_ETHER = 1000000000000000000;
+        this.householdAddress = 0;
+        this.household = 0;
+        this.balanceHistoryAgent =  new Array();
+        this.balanceHistoryContract = new Array();
     }
 
     loadData(biomassData) {
@@ -56,7 +60,7 @@ class AgentBiomass{
 
         let household = await new web3.eth.Contract(
             JSON.parse(compiledHousehold.interface),
-            households[0]
+            households[households.length-1]
         );
         this.householdAddress = household.options.address;
         this.household = household;
@@ -90,20 +94,25 @@ class AgentBiomass{
         return this.ethereumAddress;
     }
 
-    async getAgentBalance() {
+    async setAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
+        
+        let contractBalance = await web3.utils.getBalance(this.householdAddress);
         this.balance = balance;
-        this.balanceHistory.push(balance);
-        return balance;
+        this.balanceHistoryAgent.push(balance);
+        this.balanceHistoryContract.push(contractBalance)
+        return { balance, contractBalance };
     }
 
     async sellingLogic() {
         //let price = await this.convertToWei(this.baseElectValue);
         //OR let price = this.formulatePrice(); for variation of prices
-        //let price1 = this.formulatePrice();
-        //let price2 = this.formulatePrice();
-        let price1 = await this.convertToWei(this.baseElectValue);
-        let price2 = await this.convertToWei( this.maxElectValue);
+        let price1 = this.formulatePrice();
+        let price2 = this.formulatePrice();
+        console.log('price1 biomass', price1);
+        console.log('price2 biomass', price2);
+        price1 = await this.convertToWei(price1);
+        price2 = await this.convertToWei( price2);
   
   
         await this.placeAsk(price1, this.generationData[this.timeRow].supply/2);
@@ -126,7 +135,7 @@ class AgentBiomass{
 
         let checkPrice = convertWeiToPounds(price, this.WEI_IN_ETHER, this.PRICE_OF_ETHER);
 
-        let transactionReceipt = await this.household.methods.placeAsk(price, amount, date).send({
+        let transactionReceipt = await this.household.methods.placeAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });

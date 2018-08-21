@@ -59,7 +59,12 @@ class AgentBiomass{
     }
 
     async getAgentBalance() {
-        let balance = await web3.eth.getBalance(this.ethereumAddress);
+        let balance = 0;
+        try{
+            await web3.eth.getBalance(this.ethereumAddress);
+        }catch(err){
+            console.log('error when trying to get biomass balance', err);
+        }
         this.balance = balance;
         this.balanceHistory.push(balance);
         return balance;
@@ -115,11 +120,16 @@ class AgentBiomass{
     }
 
     async convertToWei(price) {
-        let calcPrice = (price / this.PRICE_OF_ETHER);
-        calcPrice = + calcPrice.toFixed(18);
-        price = await web3.utils.toWei(`${calcPrice}`, 'ether');
-        price = parseInt(price);
-        return price;
+        try{
+            let calcPrice = (price / this.PRICE_OF_ETHER);
+            calcPrice = + calcPrice.toFixed(18);
+            price = await web3.utils.toWei(`${calcPrice}`, 'ether');
+            price = parseInt(price);
+            return price;
+        }catch(err){
+            console.log('error from converting to wei in biomass agent', err);
+        }
+        
     }
 
     formulatePrice() {

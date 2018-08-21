@@ -23,10 +23,15 @@ class AgentNationalGrid{
     }
 
     async getAgentBalance() {
-        let balance = await web3.eth.getBalance(this.ethereumAddress);
-        this.balance = balance;
-        this.balanceHistory.push(balance);
-        return balance;
+        try{
+            let balance = await web3.eth.getBalance(this.ethereumAddress);
+            this.balance = balance;
+            this.balanceHistory.push(balance);
+            return balance;
+        }catch(err){
+            console.log('error from getting agent balance from national grid', err);
+        }
+       
     }
 }
 

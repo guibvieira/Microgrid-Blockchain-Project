@@ -83,7 +83,7 @@ class Agent{
         for (i=1; i<historicData.length-1; i++){
             let currentDemand = {
                 time: historicData[i][0], 
-                demand: parseFloat(historicData[i][1]) * 1000
+                demand: parseFloat(historicData[i][1]) * 0.75 * 1000
             }
 
             let currentSupply = {
@@ -106,19 +106,15 @@ class Agent{
     }
 
     async getAgentBalance() {
-        let balance =0;
-        try{
-            balance = await web3.eth.getBalance(this.ethereumAddress);
-        }catch(err){console.log('getting balance error', err)};
+        let balance = await web3.eth.getBalance(this.ethereumAddress);
+        
         this.balance = balance;
         return balance;
     }
 
     async setAgentBalance() {
         let balance = 0;
-        try{
-            balance = await web3.eth.getBalance(this.ethereumAddress);
-        }catch(err){console.log('error from setting the balance', err)};
+        balance = await web3.eth.getBalance(this.ethereumAddress);
         this.balanceHistory.push(balance);
     }
 
@@ -237,6 +233,18 @@ class Agent{
         }
         this.askHistory.push(newAsk);
         return true;
+    }
+
+    updateCharge() {
+        
+        if(this.chargeHistory[this.chargeHistory.length-1].timeRow != this.timeRow) {
+            let newObj = {
+                timeRow: this.timeRow,
+                charge: this.amountOfCharge
+            }
+            this.chargeHistory.push(newObj);
+        }
+        
     }
 
     charge(amount){
@@ -446,10 +454,11 @@ class Agent{
 
     formulateAmount() {
         //look 10 hours ahead
+        let timeInterval = 10;
         let supplySum = 0;
         let demandSum = 0;
         let energyNeeded = 0
-        for(let i = this.timeRow ; i < this.timeRow + 10; i++) {
+        for(let i = this.timeRow ; i < this.timeRow + timeInterval; i++) {
             supplySum += this.historicalSupply[i].supply;
             demandSum += this.historicalDemand[i].demand;
             

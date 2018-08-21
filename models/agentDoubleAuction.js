@@ -36,6 +36,7 @@ class Agent{
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
         this.WEI_IN_ETHER = 1000000000000000000;
+        this.costTransactions = new Array();
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -59,7 +60,8 @@ class Agent{
         this.nationalGridPrice = 0.1437;
         this.blackOutTimes = new Array();
 
-        this.balanceHistory = new Array();              
+        this.balanceHistoryAgent = new Array();  
+        this.balanceHistoryContract = new Array();            
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID){
@@ -98,8 +100,15 @@ class Agent{
 
     async setAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
-        this.balanceHistory.push(balance);
+        
+        let contractBalance = await web3.utils.getBalance(this.householdAddress);
+        this.balance = balance;
+        this.balanceHistoryAgent.push(balance);
+        this.balanceHistoryContract.push(contractBalance)
+        return { balance, contractBalance };
     }
+
+    
 
     async setNationalGrid(nationalGridPrice, nationalGridAddress ) {
         let nationalGridPriceEther = nationalGridPrice / 250; 
@@ -174,7 +183,7 @@ class Agent{
 
     async placeBuy(price, amount, date){
         //console.log(`placing buy for ${amount} at price ${price} in household ${this.householdID}`);
-        let transactionReceipt = await this.household.methods.submitBid(price, amount, date).send({
+        let transactionReceipt = await this.household.methods.submitBid(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
@@ -192,7 +201,7 @@ class Agent{
 
     async placeAsk(price, amount, date){
         //console.log(`placing ask for ${amount} at price ${price} in household ${this.householdID}`);
-        let transactionReceipt = await this.household.methods.submitAsk(price, amount, date).send({
+        let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
@@ -230,44 +239,29 @@ class Agent{
 
     async charge(amount){
        
-            await this.household.methods.charge(amount).send({
-                from: this.ethereumAddress,
-                gas: '1000000'
-            });
-        this.amountOfCharge += amount;
-        if(this.amountOfCharge > this.batteryCapacity) {
-            this.amountOfCharge = this.batteryCapacity;
-        }
-        let newObj = {
-            charge: this.amountOfCharge,
-            timeRow: this.timeRow 
-        }
-        console.log(`amount of charge, ${this.amountOfCharge} in agent ${this.householdID} in iteration ${this.timeRow}`);
-        
-        this.chargeHistory.push(newObj);
-    }
-
-    async discharge(amount){
-        await this.household.methods.discharge(amount).send({
+        let transactionReceipt = await this.household.methods.charge(amount).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
-
-        this.amountOfCharge -= amount;
-        if(this.amountOfCharge <= 0) {
-            this.amountOfCharge = 0;
-            let newBlackOut = {
-                timeRow: this.timeRow,
-                blackOut: 1
-            }
-            this.blackOutTimes.push(newBlackOut);
-        }
         let newObj = {
-            charge: this.amountOfCharge,
-            timeRow: this.timeRow 
+            timeRow: this.timeRow,
+            transactionCost: transactionReceipt.gasUsed
         }
+        this.costTransactions.push(newObj);
         
-        this.chargeHistory.push(newObj); 
+    }
+
+    async discharge(amount){
+        let transactionReceipt = await this.household.methods.discharge(amount).send({
+            from: this.ethereumAddress,
+            gas: '1000000'
+        });
+        let newObj = {
+            timeRow: this.timeRow,
+            transactionCost: transactionReceipt.gasUsed
+        }
+        this.costTransactions.push(newObj);
+
     }
 
     setCurrentTime(row){
@@ -286,6 +280,18 @@ class Agent{
             sumPrices += this.historicalPrices[i]
         }
         return sumPrices / 24; // returns the average over that entire day
+    }
+
+    updateCharge() {
+        let amountOfCharge = await this.household.methods.amountOfCharge().call();
+
+        let newObj = {
+            timeRow: this.timeRow,
+            charge: amountOfCharge
+        }
+        console.log('did not update charge, therefore updating now , household: ', this.householdID);
+        this.chargeHistory.push(newObj);
+        return amountOfCharge;
     }
 
     async purchaseLogic() {
@@ -510,6 +516,36 @@ class Agent{
                 return value;
             }
         } 
+    }
+
+    async deployContract () {
+
+        await factory.methods.createHousehold(0).send({
+            from: this.ethereumAddress,
+            gas: '1000000'
+        });
+        let households = await factory.methods.getDeployedHouseholds().call(); 
+
+        let household = await new web3.eth.Contract(
+            JSON.parse(compiledHousehold.interface),
+            households[households.length-1]
+        );
+        this.householdAddress = household.options.address;
+        this.household = household;
+
+        await this.household.methods.setExchange(exchange.options.address).send({
+            from: this.ethereumAddress,
+            gas: '1999999'
+        });
+        
+        //Initial deposit of 1 ether to contract
+        await this.household.methods.deposit().send({
+            from: this.ethereumAddress,
+            gas: '1999999',
+            value: web3.utils.toWei( '10', 'ether')
+        });
+
+        return this.household;
     }    
 }
 
