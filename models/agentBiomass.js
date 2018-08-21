@@ -78,12 +78,16 @@ class AgentBiomass{
         await this.placeAsk(price2, this.generationData[this.timeRow].supply/2);
     }
 
-    addSuccessfulAsk(amount) {
+    addSuccessfulAsk(price, amount) {
         let date = (new Date).getTime();
+        let amountTransaction = price * (amount/1000);
+        amountTransaction = parseInt( amountTransaction.toFixed(18));
 
         let newReceivedTransaction = {
-            amount: amount,
+            amount: amountTransaction,
+            quantity: amount,
             date: date,
+            price: price,
             timeRow: this.timeRow
         }
         this.successfulAskHistory.push(newReceivedTransaction);

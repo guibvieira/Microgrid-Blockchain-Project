@@ -34,13 +34,13 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 6;  // input
+const simulationDays = 1;  // input
 const PRICE_OF_ETHER = 250; 
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.06; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputDayBiomass4_week.csv'; //input
+const csvResultsFileName = 'outputDayBiomass17_day.csv'; //input
 
 
 async function init() {
@@ -61,14 +61,11 @@ async function init() {
 
     let biomassData = generateBiomassData(householdHistoricData);
 
-    let metaDataBattery = metaData.slice(0, Math.floor(metaData.length / 2));
-    //let metaDataNoBattery = metaData.slice( Math.floor(metaData.length)/2 , metaData.length-1 );
+    let metaDataBattery = metaData.slice(0, Math.floor(metaData.length / 8));
 
-    let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length) / 2 );
-    //let householdDataNoBattery = householdHistoricData.slice(Math.floor(householdHistoricData.length)/2, householdHistoricData.length-1);
+    let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length) / 8 );
 
     let { agents, agentNationalGrid, agentBiomass } = await createAgents(metaDataBattery, householdDataBattery, biomassData, 12000, true, BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX);
-    //let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
     
     let agentsBattery = agents;
     let simulationDurationCalc = 365 / simulationDays;
@@ -79,7 +76,7 @@ async function init() {
 
     simDuration = Math.round(simDuration);
     let timeArray= new Array();
-
+    console.log(`using ${agentsBattery.length} amount of agents`);
     console.log('sim duration', simDuration);
     console.log('starting simulation');
 
@@ -148,7 +145,7 @@ async function init() {
             if(bids.length > 0) {
                 for (let i = 0; i < bids.length; i++){
                     let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[i].address; });
-                    obj.agent.discharge(bids[i].amount);
+                    obj.agent.unfilledOrdersProcess(); //will discharge what he needs, bid might be higher than what he needs at present
                     unFilledBids.push(bids[i]);
                 }
             }
@@ -176,7 +173,8 @@ async function init() {
             for (let i=0; i < bids.length; i++){
                 unFilledBids.push(bids[i]);
                 let obj = agentsBattery.find(function (obj) { return obj.agentAccount === bids[i].address; });
-                obj.agent.discharge(bids[i].amount);
+                obj.agent.unfilledOrdersProcess();
+                
             }
 
             for (let i=0; i < asks.length; i++) {
@@ -541,7 +539,8 @@ async function init() {
         dailyVolume = Array.from(dailyVolume, item => item || 0);
 
         
-        console.log(`charge at time ${i} : ${sumCharge}`);
+        console.log(`
+         at time ${i} : ${sumCharge}`);
         let newCsvEntry = {
             time: i,
             agg_demand: aggregatedDemand[i],
