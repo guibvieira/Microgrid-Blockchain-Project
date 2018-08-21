@@ -55,6 +55,7 @@ async function init() {
     let amountBidsPerT = new Array();
     let amountAsksPerT = new Array();
 
+
     var accounts = await web3.eth.getAccounts();
 
     let { metaData, householdHistoricData } = await getFiles();

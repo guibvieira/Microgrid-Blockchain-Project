@@ -172,43 +172,55 @@ function calculateIntersection(array1, array2){
     array1y = convertArrayWeiToPounds(array1y, WEI_IN_ETHER , PRICE_OF_ETHER);
     array2y = convertArrayWeiToPounds(array2y, WEI_IN_ETHER , PRICE_OF_ETHER);
 
-    var trace1 = {
-            x: array1xsub,
-            y: array1y,
-            name: "bids",
-            type: "scatter"
-        }
-    var trace2 = {
-            x: array2xsub,
-            y: array2y,
-            name: "asks",
-            type: "scatter"
-        }
-    var data = [trace1, trace2];
-    var layout = {
-            title: 'Bids and Asks Intersection',
-            xaxis: {
-            title: 'Quantity of Electricity (Wh)',
-            titlefont: {
-                family: 'Courier New, monospace',
-                size: 18,
-                color: '#7f7f7f'
-            }
-            },
-            yaxis: {
-            title: 'Price (p/kWh)',
-            titlefont: {
-                family: 'Courier New, monospace',
-                size: 18,
-                color: '#7f7f7f'
-            }
-            }
-    };
+    // var trace1 = {
+    //         x: array1xsub,
+    //         y: array1y,
+    //         name: "bids",
+    //         type: "scatter"
+    //     }
+    // var trace2 = {
+    //         x: array2xsub,
+    //         y: array2y,
+    //         name: "asks",
+    //         type: "scatter"
+    //     }
+    // var data = [trace1, trace2];
+    // var layout = {
+    //         title: 'Bids and Asks Intersection',
+    //         xaxis: {
+    //         title: 'Quantity of Electricity (Wh)',
+    //         titlefont: {
+    //             family: 'Courier New, monospace',
+    //             size: 18,
+    //             color: '#7f7f7f'
+    //         }
+    //         },
+    //         yaxis: {
+    //         title: 'Price (p/kWh)',
+    //         titlefont: {
+    //             family: 'Courier New, monospace',
+    //             size: 18,
+    //             color: '#7f7f7f'
+    //         }
+    //         }
+    // };
 
-    var graphOptions = {layout: layout, filename: "Intersection Demand and Supply", fileopt: "overwrite"};
-    plotly.plot(data, graphOptions, function (err, msg) {
-        console.log(msg);
-    });
+    // var graphOptions = {layout: layout, filename: "Intersection Demand and Supply", fileopt: "overwrite"};
+    // plotly.plot(data, graphOptions, function (err, msg) {
+    //     console.log(msg);
+    // });
+    // var csvStream = csv.createWriteStream({ headers: true }),
+    // writableStream = fs.createWriteStream('intersection');
+
+    // writableStream.on("finish", function () {
+    //     console.log("DONE!");
+    // });
+    
+    // csvStream.pipe(writableStream);
+    // for(let i = 0; i < csvData.length; i++){
+    // csvStream.write(csvData[i]);
+    // }
+    // csvStream.end();
 
     return intersection;
 }
