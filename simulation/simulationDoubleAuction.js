@@ -4,14 +4,15 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"))
-const Agent = require('../models/agentSimulation.js');
+const Agent = require('../models/agentDoubleAuction.js');
 const AgentNationalGrid = require('../models/agentNationalGrid.js');
-const AgentBiomass = require('../models/agentBiomass.js');
+const AgentBiomass = require('../models/agentBiomassDAuction.js');
 const plotly = require('plotly')('guibvieiraProject', 'Whl2UptBOq1gMvQrRGHk');
 
 //compiled contracts
-//const factory = require('../ethereum/factory');
+const factory = require('../ethereum/factory');
 const exchange = require('../ethereum/exchange');
+const compiledHousehold = require('../ethereum/build/Household.json');
 
 //packages and functions imports
 const readCSV = require('./readFile.js');
@@ -31,13 +32,13 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 31;  // input
+const simulationDays = 1;  // input
 const PRICE_OF_ETHER = 250; 
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.06; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputDayBiomass_test1_month.csv'; //input
+const csvResultsFileName = 'simulationContinuousDoubleAuction_test1.csv'; //input
 
 
 async function init() {
@@ -77,6 +78,7 @@ async function init() {
 
     let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length-1); // make the last account from ganache to be the national grid address
     let biomassAddress = await agentBiomass.getAccount(accounts.length-2);
+    let biomassContract = await agentBiomass.deployContract();
 
     simDuration = Math.round(simDuration);
     let timeArray= new Array();
@@ -93,32 +95,50 @@ async function init() {
         biomassAgentBalanceHistory.push( balance );
         biomassContractBalanceHistory.push( contractBalance );
         agentBiomass.setCurrentTime(i);
-        await agentBiomass.sellingLogic();
+
+        try{
+            await agentBiomass.sellingLogic();
+        }catch(err) {
+            console.log('error from selling logic biomass', err);
+        }
+        
 
         //let { bids: bidsPre, asks: asksPre , bidsVolumeElect: bidsVolumeElectPre, asksVolumeElect: asksVolumeElectPre } = await getExchangeBids();
         
         for (let j = 0; j < agentsBattery.length; j++){
 
-            agentsBattery[j].agent.setCurrentTime(i);
-            await agentsBattery[j].agent.setAgentBalance();
-
-
             if( i == 0) {
-                await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
+                try{
+                    await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
+                    await agentsBattery[j].agent.getAccount(j);
+                    await agentsBattery[j].agent.deployContract();
+                }catch(err){
+                    console.log('error from first iteration deploying contract', err);
+                }
+             
             }
+            agentsBattery[j].agent.setCurrentTime(i);
+            try{
+                await agentsBattery[j].agent.setAgentBalance();
+            }catch(err) {
+                console.log('error from setting agent balance', err);
+            }
+
+
+            
            
             try{
                 await agentsBattery[j].agent.purchaseLogic();
             } catch(err){
                 console.log('error from purchase logic', err);
             }
-            agentsBattery[j].agent.updateCharge();
+            await agentsBattery[j].agent.updateCharge();
         }
 
         //price, quantity, and transactionAmount extraction
-        let bidsPrice = 0;
-        let bidsQuantity = 0;
-        let bidsTransactionAmount = 0;
+        let bidsPrice = new Array();
+        let bidsQuantity = new Array();
+        let bidsTransactionAmount = new Array();
         for (let j = 0; j < agentsBattery.length; j++) {
             
             let bidCount = await agentsBattery[j].agent.household.methods.getSuccessfulBidCount().call();
@@ -140,7 +160,7 @@ async function init() {
                 }
             }
         }
-        succesfulBidsPrice.push(bidsPrice.reduce((a, b) => a + b, 0));
+        succesfulBidsPrice.push( bidsPrice.reduce((a, b) => a + b, 0));
         succesfulBidsQuantity.push(bidsQuantity.reduce((a, b) => a + b, 0));
         succesfulBidsTransactionAmount.push(bidsTransactionAmount.reduce((a, b) => a + b, 0));
 
@@ -190,7 +210,6 @@ async function init() {
     let percentageNatGridEnergyTrades = new Array();
     let dailyVolume = new Array();
     let blackOutInstances = new Array();
-    let hourlyExpenditure = new Array();
     let nationalGridPurchasesDay = new Array();
 
     //averages parameters (for each agent)
@@ -199,6 +218,7 @@ async function init() {
     let averageNationalGridPurchases = new Array(); 
     let averageNationalGridPurchasesDay = new Array(); 
     let averageExpenditureDayGas = new Array();
+    let averageExpenditureDay = new Array();
     let averageAsksDay = new Array();
     let averageBidsDay = new Array();
 
@@ -228,8 +248,16 @@ async function init() {
         let nationalGridBidsQuantity = new Array();
         let biomassBidsElect = new Array();
         let contractInteractionCosts = new Array();
+        let agentsBalanceHistoryAgent = new Array();
+        let agentsBalanceHistoryContract = new Array();
+        let successfulBidsGas = new Array();
+        let successfulBidsAmount = new Array();
+        let succesfulBidsSumCosts = new Array();
+        let successfulBidsElect = new Array();
         
         let agentsBalanceHistory = new Array();
+
+
 
 
         //conversion from wei to pounds
@@ -458,7 +486,6 @@ async function init() {
         //agent balance averaged - history
         agentBalanceAverageAgent.push( (agentsBalanceHistoryAgent.reduce((a, b) => a + b, 0)) / agentsBattery.length );
         agentBalanceAverageContract.push(agentsBalanceHistoryContract.reduce((a, b) => a + b, 0) / agentsBattery.length);
-        transactionVolume.push(agentsBalanceHistoryContract.reduce((a, b) => a + b, 0) );
 
         agentExpenditureTotal.push( agentBalanceAverageAgent[i] + agentBalanceAverageContract[i]);
 
@@ -496,16 +523,16 @@ async function init() {
                     }
 
                     if(j == i - 1) {
-                        finalAverageBalance= agentBalanceAverageAgent[j];
+                        finalAverageBalance= agentExpenditureTotal[j];
                     }
 
                     let dayAverageExpenditure = Math.abs(finalAverageBalance - initialAverageBalance);
     
                     if(finalAverageBalance != null){
-                        averageExpenditureDayGas[i] = dayAverageExpenditure;
+                        averageExpenditureDay[i] = dayAverageExpenditure;
                     }
                     else if (finalAverageBalance == null){
-                        averageExpenditureDayGas[i] = 0;
+                        averageExpenditureDay[i] = 0;
                     }
                 }
                 nationalGridPurchasesDay[i] = calcNationalGridTransactionDay.reduce((a, b) => a + b, 0);
@@ -534,7 +561,7 @@ async function init() {
             historical_prices: succesfulBidsPrice[i],
             cost_transaction: transactionCostAvg[i],
             total_transaction_cost: transactionCosts[i],
-            trading_volume: transactionVolume[i],
+            total_trading_volume: succesfulBidsTransactionAmount[i],
             biomass_volume: biomassContractBalanceHistory[i],
             nat_grid_volume: nationalGridBidsAggAmount[i],
             trading_volume_elect: succesfulBidsQuantity[i],
@@ -581,73 +608,73 @@ async function init() {
     }
     csvStream.end();
 
-    var trace1 = {
-        x: timeArray,
-        y: historicalPricesPlot,
-        name: "Historical Prices (p/kWh)",
-        yaxis: "y1",
-        type: "scatter"
-    }
-    var trace2 = {
-        x: timeArray,
-        y: aggregatedDemand,
-        name: "Aggregated Demand (Wh)",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace3 = {
-        x: timeArray,
-        y: aggregatedSupply,
-        name: "Aggregated Supply (Wh)",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace4 = {
-        x: timeArray,
-        y: biomassBalanceHistory,
-        name: "biomass Balance History",
-        yaxis: "y3",
-        type: "scatter"
-    }
-    var trace5 = {
-        x: timeArray,
-        y: chargeHistoryAggregated,
-        name: "Charge history aggregated",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace6 = {
-        x: timeArray,
-        y: biomassAskAmount,
-        name: "Biomass Volume",
-        yaxis: "y3",
-        type: "scatter"
-    }
-    var data = [trace1, trace2, trace3, trace4, trace5, trace6];
-    var layout = {
-        title: "Day Simulation - Agents with Batteries",
-        xaxis: {domain: [0.1, 0.85]},
-        yaxis: {title: "Price (p/kWh)"},
-        yaxis2: {
-          title: "Energy (Wh)",
-          titlefont: {color: "rgb(148, 103, 189)"},
-          tickfont: {color: "rgb(148, 103, 189)"},
-          overlaying: "y",
-          side: "right",
-          anchor: "x"
-        },
-        yaxis3: {
-            title: "Gas",
-            titlefont: {color: "#d62728"},
-            tickfont: {color: "#d62728"},
-            anchor: "x",
-            overlaying: "y",
-            side: "left",
-            anchor: "free",
-            position: 0,
-            showgrid: false
-        }
-        // yaxis4: {
+    // var trace1 = {
+    //     x: timeArray,
+    //     y: historicalPricesPlot,
+    //     name: "Historical Prices (p/kWh)",
+    //     yaxis: "y1",
+    //     type: "scatter"
+    // }
+    // var trace2 = {
+    //     x: timeArray,
+    //     y: aggregatedDemand,
+    //     name: "Aggregated Demand (Wh)",
+    //     yaxis: "y2",
+    //     type: "scatter"
+    // }
+    // var trace3 = {
+    //     x: timeArray,
+    //     y: aggregatedSupply,
+    //     name: "Aggregated Supply (Wh)",
+    //     yaxis: "y2",
+    //     type: "scatter"
+    // }
+    // var trace4 = {
+    //     x: timeArray,
+    //     y: biomassBalanceHistory,
+    //     name: "biomass Balance History",
+    //     yaxis: "y3",
+    //     type: "scatter"
+    // }
+    // var trace5 = {
+    //     x: timeArray,
+    //     y: chargeHistoryAggregated,
+    //     name: "Charge history aggregated",
+    //     yaxis: "y2",
+    //     type: "scatter"
+    // }
+    // var trace6 = {
+    //     x: timeArray,
+    //     y: biomassAskAmount,
+    //     name: "Biomass Volume",
+    //     yaxis: "y3",
+    //     type: "scatter"
+    // }
+    // var data = [trace1, trace2, trace3, trace4, trace5, trace6];
+    // var layout = {
+    //     title: "Day Simulation - Agents with Batteries",
+    //     xaxis: {domain: [0.1, 0.85]},
+    //     yaxis: {title: "Price (p/kWh)"},
+    //     yaxis2: {
+    //       title: "Energy (Wh)",
+    //       titlefont: {color: "rgb(148, 103, 189)"},
+    //       tickfont: {color: "rgb(148, 103, 189)"},
+    //       overlaying: "y",
+    //       side: "right",
+    //       anchor: "x"
+    //     },
+    //     yaxis3: {
+    //         title: "Gas",
+    //         titlefont: {color: "#d62728"},
+    //         tickfont: {color: "#d62728"},
+    //         anchor: "x",
+    //         overlaying: "y",
+    //         side: "left",
+    //         anchor: "free",
+    //         position: 0,
+    //         showgrid: false
+    //     }
+    //     // yaxis4: {
         //     title: "# Transactions",
         //     titlefont: {color: "#d62728"},
         //     tickfont: {color: "#d62728"},
@@ -660,10 +687,10 @@ async function init() {
         // }
     };
 
-    var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries (including biomass)", fileopt: "overwrite"};
-    plotly.plot(data, graphOptions, function (err, msg) {
-        console.log(msg);
-    });
+    // var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries (including biomass)", fileopt: "overwrite"};
+    // plotly.plot(data, graphOptions, function (err, msg) {
+    //     console.log(msg);
+    // });
 
 };
 
