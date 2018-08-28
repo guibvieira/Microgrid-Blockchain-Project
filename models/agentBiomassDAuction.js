@@ -13,7 +13,6 @@ const compiledHousehold = require('../ethereum/build/Household.json');
 const factory = require('../ethereum/factory');
 const exchange = require('../ethereum/exchange');
 
-
 class AgentBiomass{
     constructor(BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX){
         this.biomassPrice = BIOMASS_PRICE_MAX; //0.06 to 0.12
@@ -97,7 +96,7 @@ class AgentBiomass{
     async setAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
         
-        let contractBalance = await web3.utils.getBalance(this.householdAddress);
+        let contractBalance = await web3.eth.getBalance(this.householdAddress);
         this.balance = balance;
         this.balanceHistoryAgent.push(balance);
         this.balanceHistoryContract.push(contractBalance)
@@ -105,18 +104,41 @@ class AgentBiomass{
     }
 
     async sellingLogic() {
-        //let price = await this.convertToWei(this.baseElectValue);
+        let price = await this.convertToWei(this.baseElectValue);
         //OR let price = this.formulatePrice(); for variation of prices
         let price1 = this.formulatePrice();
         let price2 = this.formulatePrice();
-        console.log('price1 biomass', price1);
-        console.log('price2 biomass', price2);
+        let price3 = this.formulatePrice();
+        let price4 = this.formulatePrice();
+      
         price1 = await this.convertToWei(price1);
         price2 = await this.convertToWei( price2);
+        price3 = await this.convertToWei(price3);
+        price4 = await this.convertToWei( price4);
+
+        let askCount = await exchange.methods.getAsksCount().call();
+        console.log('ask count', askCount);
+        // for(let i = 0; i < askCount; i++) {
+        //     let ask = await exchange.methods.getAsk(i).call();
+        //     console.log('ask biomass quantity', ask[2])
+        //     newAsk= {
+        //         price: parseInt(ask[1]),
+        //         quantity: parseInt(ask[2]),
+        //         address: ask[0],
+        //         time: parseInt(ask[3])
+        //     }
+
+        // }
   
-  
-        await this.placeAsk(price1, this.generationData[this.timeRow].supply/2);
-        await this.placeAsk(price2, this.generationData[this.timeRow].supply/2);
+        if (askCount < 30) {
+            console.log('placing ask from biomasss')
+            await this.placeAsk(price, this.generationData[this.timeRow].supply/2);
+            await this.placeAsk(price2, this.generationData[this.timeRow].supply/4);
+            await this.placeAsk(price3, this.generationData[this.timeRow].supply/4);
+        }else{
+            return true;
+        }
+        
     }
 
     addSuccessfulAsk(amount) {
@@ -135,7 +157,7 @@ class AgentBiomass{
 
         let checkPrice = convertWeiToPounds(price, this.WEI_IN_ETHER, this.PRICE_OF_ETHER);
 
-        let transactionReceipt = await this.household.methods.placeAsk(price, amount, this.timeRow).send({
+        let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
