@@ -83,7 +83,7 @@ class Agent{
         for (i=1; i<historicData.length-1; i++){
             let currentDemand = {
                 time: historicData[i][0], 
-                demand: parseFloat(historicData[i][1]) * 0.75 * 1000
+                demand: parseFloat(historicData[i][1]) * 1000
             }
 
             let currentSupply = {

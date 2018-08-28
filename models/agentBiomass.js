@@ -72,11 +72,13 @@ class AgentBiomass{
 
     async sellingLogic() {
         //let price = await this.convertToWei(this.baseElectValue);
+        // let price1 = await this.convertToWei(this.baseElectValue);
+        // let price2 = await this.convertToWei( this.maxElectValue);
         //OR let price = this.formulatePrice(); for variation of prices
-        //let price1 = this.formulatePrice();
-        //let price2 = this.formulatePrice();
-        let price1 = await this.convertToWei(this.baseElectValue);
-        let price2 = await this.convertToWei( this.maxElectValue);
+        let price1 = this.formulatePrice();
+        let price2 = this.formulatePrice();
+        price1 = await this.convertToWei(price1);
+        price2 = await this.convertToWei(price2);
   
   
         await this.placeAsk(price1, this.generationData[this.timeRow].supply/2);
