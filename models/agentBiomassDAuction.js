@@ -132,9 +132,9 @@ class AgentBiomass{
   
         if (askCount < 30) {
             console.log('placing ask from biomasss')
-            await this.placeAsk(price, this.generationData[this.timeRow].supply/2);
-            await this.placeAsk(price2, this.generationData[this.timeRow].supply/4);
-            await this.placeAsk(price3, this.generationData[this.timeRow].supply/4);
+            await this.placeAsk(price, this.generationData[this.timeRow].supply/3);
+            await this.placeAsk(price2, this.generationData[this.timeRow].supply/3);
+            await this.placeAsk(price3, this.generationData[this.timeRow].supply/3);
         }else{
             return true;
         }
