@@ -963,11 +963,11 @@ async function matchBids(bid_index, ask_index, bids, asks, agentsBattery, agentB
         await obj.agent.sendFunds(intersection[1], calcAmount, asks[ask_index].address );
 
         if (asks[ask_index].address == biomassAddress) {
-            agentBiomass.addSuccessfulAsk( intersection[1], asks[ask_index].amount);
+            agentBiomass.addSuccessfulAsk( intersection[1], calcAmount);
         } else {
             let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[ask_index].address; });
-            objSeller.agent.discharge(asks[ask_index].amount);
-            objSeller.agent.addSuccessfulAsk(intersection[1], asks[ask_index].amount);
+            objSeller.agent.discharge(calcAmount);
+            objSeller.agent.addSuccessfulAsk(intersection[1], calcAmount);
         }  
 
         bids[bid_index].amount = remainder;
@@ -987,11 +987,11 @@ async function matchBids(bid_index, ask_index, bids, asks, agentsBattery, agentB
         await obj.agent.sendFunds(intersection[1], calcAmount, asks[ask_index].address );
 
         if (asks[ask_index].address == biomassAddress) {
-            agentBiomass.addSuccessfulAsk(intersection[1], asks[ask_index].amount);
+            agentBiomass.addSuccessfulAsk(intersection[1], calcAmount);
         } else {
             let objSeller = agentsBattery.find(function (obj) { return obj.agentAccount === asks[ask_index].address; });
-            objSeller.agent.discharge(asks[ask_index].amount);
-            objSeller.agent.addSuccessfulAsk(intersection[1], asks[ask_index].amount);
+            objSeller.agent.discharge(calcAmount);
+            objSeller.agent.addSuccessfulAsk(intersection[1], calcAmount);
         } 
 
         asks[ask_index].amount = remainder;
