@@ -19,5 +19,4 @@ if (typeof window !== 'undefined' && typeof window.web3 !== 'undefined') {
 // what we had --> const web3 = new Web3(window.web3.currentProvider);//give it the provider from metamask
 //'https://rinkeby.infura.io/YDnIBMV5OY1S3hf9iVWn'
 
-// export default web3;
 module.exports = web3;

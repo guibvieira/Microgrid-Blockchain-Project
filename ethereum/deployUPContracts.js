@@ -14,21 +14,7 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3( new Web3.providers.HttpProvider("http://localhost:8545"));
-const compiledFactory = require('./build/HouseholdFactory.json');
 const compiledExchange = require('./build/Exchange.json');
-const Exchange = require ('./build/Exchange.json');
-
-const deployFactory = async () => {
-    const accounts = await web3.eth.getAccounts();
-
-    console.log('Attempting to deploy from account', accounts[0])
-
-    const result = await new web3.eth.Contract(JSON.parse(compiledFactory.interface))
-        .deploy({ data: '0x' + compiledFactory.bytecode })
-        .send({ gas: '1999999',from: accounts[0]});
-    
-    console.log('Contract Factory deployed to', result.options.address);
-};
 
 const deployExchange = async () => {
     const accounts = await web3.eth.getAccounts();
@@ -43,4 +29,3 @@ const deployExchange = async () => {
 };
 
 deployExchange();
-deployFactory();

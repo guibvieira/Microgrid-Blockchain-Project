@@ -19,7 +19,7 @@ const readCSV = require('./readFile.js');
 const {convertArrayGasToPounds, convertArrayWeiToPounds, convertWeiToPounds, convertGasToPounds} = require('./conversions.js');
 let fs = require('fs');
 var csv = require("fast-csv");
-let inputFile = '../data/metadata-LCOE.csv';
+let inputFile = './data/metadata-LCOE.csv';
 let id = new Array();
 let baseValue = new Array();
 let baseValueBattery = new Array();
@@ -87,7 +87,7 @@ async function init() {
 
     simDuration = Math.round(simDuration);
     let timeArray= new Array();
-    console.log(`using ${agentsBattery.length} amount of agents`);
+    console.log(`using ${agentsBattery.length} agents`);
     console.log('sim duration', simDuration);
     console.log('starting simulation');
 
@@ -667,91 +667,6 @@ async function init() {
     csvStream.write(csvData[i]);
     }
     csvStream.end();
-
-    // var trace1 = {
-    //     x: timeArray,
-    //     y: historicalPricesPlot,
-    //     name: "Historical Prices (p/kWh)",
-    //     yaxis: "y1",
-    //     type: "scatter"
-    // }
-    // var trace2 = {
-    //     x: timeArray,
-    //     y: aggregatedDemand,
-    //     name: "Aggregated Demand (Wh)",
-    //     yaxis: "y2",
-    //     type: "scatter"
-    // }
-    // var trace3 = {
-    //     x: timeArray,
-    //     y: aggregatedSupply,
-    //     name: "Aggregated Supply (Wh)",
-    //     yaxis: "y2",
-    //     type: "scatter"
-    // }
-    // var trace4 = {
-    //     x: timeArray,
-    //     y: biomassBalanceHistory,
-    //     name: "biomass Balance History",
-    //     yaxis: "y3",
-    //     type: "scatter"
-    // }
-    // var trace5 = {
-    //     x: timeArray,
-    //     y: chargeHistoryAggregated,
-    //     name: "Charge history aggregated",
-    //     yaxis: "y2",
-    //     type: "scatter"
-    // }
-    // var trace6 = {
-    //     x: timeArray,
-    //     y: biomassAskAmount,
-    //     name: "Biomass Volume",
-    //     yaxis: "y3",
-    //     type: "scatter"
-    // }
-    // var data = [trace1, trace2, trace3, trace4, trace5, trace6];
-    // var layout = {
-    //     title: "Day Simulation - Agents with Batteries",
-    //     xaxis: {domain: [0.1, 0.85]},
-    //     yaxis: {title: "Price (p/kWh)"},
-    //     yaxis2: {
-    //       title: "Energy (Wh)",
-    //       titlefont: {color: "rgb(148, 103, 189)"},
-    //       tickfont: {color: "rgb(148, 103, 189)"},
-    //       overlaying: "y",
-    //       side: "right",
-    //       anchor: "x"
-    //     },
-    //     yaxis3: {
-    //         title: "Gas",
-    //         titlefont: {color: "#d62728"},
-    //         tickfont: {color: "#d62728"},
-    //         anchor: "x",
-    //         overlaying: "y",
-    //         side: "left",
-    //         anchor: "free",
-    //         position: 0,
-    //         showgrid: false
-    //     }
-    //     // yaxis4: {
-        //     title: "# Transactions",
-        //     titlefont: {color: "#d62728"},
-        //     tickfont: {color: "#d62728"},
-        //     anchor: "x",
-        //     overlaying: "y",
-        //     side: "left",
-        //     anchor: "free",
-        //     position: 1,
-        //     showgrid: false
-        // }
-    //};
-
-    // var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries (including biomass)", fileopt: "overwrite"};
-    // plotly.plot(data, graphOptions, function (err, msg) {
-    //     console.log(msg);
-    // });
-
 };
 
 init();
@@ -803,7 +718,7 @@ async function getFiles() {
             id.push( metaData[i][0] );
             baseValue.push( metaData[i][2] );
             baseValueBattery.push( metaData[i][3] );
-            householdFiles.push(`../data/household_${id[i]}.csv`); // `householdFile
+            householdFiles.push(`./data/household_${id[i]}.csv`); // `householdFile
     }
 
     for (const file of householdFiles){

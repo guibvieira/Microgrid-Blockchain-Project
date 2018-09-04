@@ -1,8 +1,8 @@
 import React, { Component } from 'react';
 import { Form, Input, Message, Button } from 'semantic-ui-react';
 import web3 from '../ethereum/web3';
-import factory from '../ethereum/factory';
-import exchange from '../ethereum/exchange';
+import factory from '../ethereum/factoryApp';
+import exchange from '../ethereum/exchangeApp';
 import { Router } from '../routes';
 import Household from '../ethereum/household';
 
@@ -21,7 +21,7 @@ class HouseholdForm extends Component {
 
         try {
             const accounts = await web3.eth.getAccounts();
-            await factory.methods.createHousehold('5000').send({
+            await factory.methods.createHousehold(this.state.batteryCapacity).send({
                 from: accounts[0],
                 gas: '1000000'
             });
@@ -46,7 +46,7 @@ class HouseholdForm extends Component {
     }
 
     onInputChanged(event) {
-        this.setState({ minimumContribution: event.target.value });
+        this.setState({ batteryCapacity: event.target.value });
     }
 
     render() {

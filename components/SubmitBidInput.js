@@ -65,12 +65,12 @@ class SubmitBidInput extends Component {
              </Form.Field>
 
              <Form.Field>
-             <label>Quantity (kWh)</label>
+             <label>Quantity (Wh)</label>
                 <Input
                 type='number'
                 value={this.state.amount}
                 size='mini'
-                label='kWh'
+                label='Wh'
                 labelPosition='right'
                 onChange={event =>
                     this.setState({ amount: event.target.value })}

@@ -9,18 +9,20 @@
     "reset": "rm -rf node_modules/ && npm install",
     "deploy": "node ./ethereum/deploy.js",
     "compile": "node ./ethereum/compile.js",
-    "sim": "node simulation/simSBBiomass.js"
+    "prepareApp": "node ./ethereum/compileAppContracts.js && node ./ethereum/deployAppContracts.js",
+    "prepareDA": "node ./ethereum/compileDAContracts.js && node ./ethereum/deployDAContracts.js",
+    "prepareUP": "node ./ethereum/compileUPContracts.js && node ./ethereum/deployUPContracts.js",
+    "simDA" : "node ./simulation/simulationDoubleAuction.js",
+    "simUP" : "node ./simulation/simulationUniformPrice.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@zeit/next-sass": "^0.2.0",
-<<<<<<< HEAD
-    "eslint-plugin-nodeca": "^1.0.3",
-=======
     "algebra.js": "^0.2.6",
     "axios": "^0.18.0",
     "brain.js": "^1.2.4",
+    "child_process": "^1.0.2",
     "circular-json": "^0.5.5",
     "csv": "^3.1.0",
     "csv-parse": "^2.5.0",
@@ -30,7 +32,7 @@
     "d3node-linechart": "0.0.7",
     "d3node-output": "^1.0.2",
     "fast-csv": "^2.4.1",
->>>>>>> agentDoubleAuction
+    "fs": "0.0.1-security",
     "fs-extra": "^6.0.1",
     "ganache-cli": "^6.1.6",
     "jquery": "^3.3.1",
@@ -43,6 +45,8 @@
     "ml-regression-multivariate-linear": "^1.2.0",
     "ml-svm": "^2.1.2",
     "mocha": "^5.2.0",
+    "module": "^1.2.5",
+    "net": "^1.0.2",
     "next": "^4.1.4",
     "next-routes": "^1.4.2",
     "node-sass": "^4.9.2",

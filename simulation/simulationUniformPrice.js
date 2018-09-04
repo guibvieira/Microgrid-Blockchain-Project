@@ -4,7 +4,7 @@
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 let web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
-const Agent = require('../models/agentSimulation.js');
+const Agent = require('../models/agentUniformPrice.js');
 const AgentNationalGrid = require('../models/agentNationalGrid.js');
 const AgentBiomass = require('../models/agentBiomass.js');
 const plotly = require('plotly')('guibvieiraProject', 'Whl2UptBOq1gMvQrRGHk');
@@ -21,7 +21,7 @@ var csv = require("fast-csv");
 let parse = require('csv-parse');
 let async = require('async');
 let calculateIntersection = require('./intersectionBiomass');
-let inputFile = '../data/metadata-LCOE.csv';
+let inputFile = './data/metadata-LCOE.csv';
 let id = new Array();
 let baseValue = new Array();
 let baseValueBattery = new Array();
@@ -40,7 +40,7 @@ const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.06; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'outputDayBiomass_test3_6months_46agents.csv'; //input
+const csvResultsFileName = 'output_test3_6months_46agents.csv'; //input
 
 
 async function init() {
@@ -343,11 +343,7 @@ async function init() {
                 if( agentsBattery[j].agent.chargeHistory[k].timeRow == i){
                     charge.push(agentsBattery[j].agent.chargeHistory[k].charge);
                 }
-                // else {
-                //     if( agentsBattery[j].agent.chargeHistory[k].timeRow == i-1){
-                //         charge.push(agentsBattery[j].agent.chargeHistory[k].charge);
-                //     }
-                // }
+
             }
 
              //get black out occurances
@@ -427,14 +423,6 @@ async function init() {
         else if(gasCostAsks.length == 0) {
             transactionCostAsk[i] = 0;
         }
-        //Some random time steps,a Nan appears, hence this loop
-        // for(let j = 0; j < transactionCostAsk.length; j++) {
-        //     if(isNaN(transactionCostAsk[j])) {
-        //         transactionCostAsk[j] = 0;
-        //     }
-        // }
-     
-       
         
         //calc for successful bids (the ones actually went through where there was a transaction of ether)
         if(successfulBidsGas.length > 0) {
@@ -618,7 +606,6 @@ async function init() {
         }
         csvData.push(newCsvEntry);
     }
-    console.log('number of agents', agentsBattery.length);
     console.log(`writing results of simulation to csv file : ${csvResultsFileName}`);
 
     var csvStream = csv.createWriteStream({ headers: true }),
@@ -633,91 +620,6 @@ async function init() {
     csvStream.write(csvData[i]);
     }
     csvStream.end();
-
-    var trace1 = {
-        x: timeArray,
-        y: historicalPricesPlot,
-        name: "Historical Prices (p/kWh)",
-        yaxis: "y1",
-        type: "scatter"
-    }
-    var trace2 = {
-        x: timeArray,
-        y: aggregatedDemand,
-        name: "Aggregated Demand (Wh)",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace3 = {
-        x: timeArray,
-        y: aggregatedSupply,
-        name: "Aggregated Supply (Wh)",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace4 = {
-        x: timeArray,
-        y: biomassBalanceHistory,
-        name: "biomass Balance History",
-        yaxis: "y3",
-        type: "scatter"
-    }
-    var trace5 = {
-        x: timeArray,
-        y: chargeHistoryAggregated,
-        name: "Charge history aggregated",
-        yaxis: "y2",
-        type: "scatter"
-    }
-    var trace6 = {
-        x: timeArray,
-        y: biomassAskAmount,
-        name: "Biomass Volume",
-        yaxis: "y3",
-        type: "scatter"
-    }
-    var data = [trace1, trace2, trace3, trace4, trace5, trace6];
-    var layout = {
-        title: "Day Simulation - Agents with Batteries",
-        xaxis: {domain: [0.1, 0.85]},
-        yaxis: {title: "Price (p/kWh)"},
-        yaxis2: {
-          title: "Energy (Wh)",
-          titlefont: {color: "rgb(148, 103, 189)"},
-          tickfont: {color: "rgb(148, 103, 189)"},
-          overlaying: "y",
-          side: "right",
-          anchor: "x"
-        },
-        yaxis3: {
-            title: "Gas",
-            titlefont: {color: "#d62728"},
-            tickfont: {color: "#d62728"},
-            anchor: "x",
-            overlaying: "y",
-            side: "left",
-            anchor: "free",
-            position: 0,
-            showgrid: false
-        }
-        // yaxis4: {
-        //     title: "# Transactions",
-        //     titlefont: {color: "#d62728"},
-        //     tickfont: {color: "#d62728"},
-        //     anchor: "x",
-        //     overlaying: "y",
-        //     side: "left",
-        //     anchor: "free",
-        //     position: 1,
-        //     showgrid: false
-        // }
-    };
-
-    var graphOptions = {layout: layout, filename: "Day Simulation - agents with batteries (including biomass)", fileopt: "overwrite"};
-    plotly.plot(data, graphOptions, function (err, msg) {
-        console.log(msg);
-    });
-
 };
 
 init();
@@ -769,7 +671,7 @@ async function getFiles() {
             id.push( metaData[i][0] );
             baseValue.push( metaData[i][2] );
             baseValueBattery.push( metaData[i][3] );
-            householdFiles.push(`../data/household_${id[i]}.csv`); // `householdFile
+            householdFiles.push(`./data/household_${id[i]}.csv`); // `householdFile
     }
 
     for (const file of householdFiles){

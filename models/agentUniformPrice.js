@@ -15,10 +15,6 @@ const gaussian = require('./gaussian');
 
 class Agent{
     constructor(batteryCapacity, batteryBool){
-<<<<<<< HEAD
-
-=======
->>>>>>> agentNationalGrid
         this.timeRow = 0;
         this.balance =0;
         this.householdAddress = 0;
@@ -50,11 +46,6 @@ class Agent{
         this.baseElectValueBattery = 0;
         this.nationalGridPrice = 0.1437;
         this.blackOutTimes = new Array();
-<<<<<<< HEAD
-
-
-=======
->>>>>>> agentNationalGrid
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID){
@@ -259,10 +250,6 @@ class Agent{
 
     setCurrentTime(row){
         this.timeRow = row;
-<<<<<<< HEAD
-=======
-   
->>>>>>> agentNationalGrid
     }
 
     unfilledOrdersProcess(){
@@ -351,10 +338,6 @@ class Agent{
                     if( bidsCount > 0) {
                         bid = await exchange.methods.getBid(bidsCount-1).call();
                         if(this.historicalPrices[this.timeRow - 24] != null || this.historicalPrices[this.timeRow - 24] != undefined){
-<<<<<<< HEAD
-=======
-
->>>>>>> agentNationalGrid
                             let averagePrice = this.calculateYesterdayAverage();
 
                             if(bid[1] > averagePrice){
@@ -362,10 +345,6 @@ class Agent{
                             }
                             else if(bid[1] <= averagePrice){
                                 if( this.amountOfCharge + excessEnergy <= this.batteryCapacity) {
-<<<<<<< HEAD
-
-=======
->>>>>>> agentNationalGrid
                                     this.charge(excessEnergy);
                                 }                           
                             }

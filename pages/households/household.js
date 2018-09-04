@@ -8,6 +8,7 @@ import web3 from '../../ethereum/web3';
 import SetExchange from '../../components/SetExchange';
 import SubmitBidInput from '../../components/SubmitBidInput';
 import SubmitSellInput from '../../components/SubmitSellInput';
+import BidsRow from '../../components/BidsRow';
 
 class HouseholdPage extends Component {
     static async getInitialProps(props) {
