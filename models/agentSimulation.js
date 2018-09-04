@@ -1,15 +1,3 @@
-//const web3 = require('../ethereum/web3.js');
-
-//Using Infura
-// const HDWalletProvider = require('truffle-hdwallet-provider');
-// const Web3 = require('web3');
-// const provider = new HDWalletProvider('pulse stable fever half settle phone impact theory crater grit chef census',
-//                                     'https://rinkeby.infura.io/YDnIBMV5OY1S3hf9iVWn'
-// );
-// const web3 = new Web3(provider);
-// const compiledFactory = require('../ethereum/build/HouseholdFactory.json');
-// const compiledHousehold = require('../ethereum/build/Household.json');
-// const compiledExchange = require('../ethereum/build/Exchange.json');
 
 //Using ganache
 //const web3 = require('../test/Agent.test.js'); //ganache instance
@@ -27,7 +15,6 @@ const gaussian = require('./gaussian');
 
 class Agent{
     constructor(batteryCapacity, batteryBool){
-        //FIND WAY TO CLACULATE AVERAGE OF PRICES FOR AN ENTIRE DAY (ATTENTION !!!!)
         this.timeRow = 0;
         this.balance =0;
         this.householdAddress = 0;
@@ -36,6 +23,7 @@ class Agent{
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
         this.WEI_IN_ETHER = 1000000000000000000;
+        this.balanceHistory = new Array();
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -58,23 +46,6 @@ class Agent{
         this.baseElectValueBattery = 0;
         this.nationalGridPrice = 0.1437;
         this.blackOutTimes = new Array();
-
-        this.balanceHistory = new Array();
-
-        //predictor vars
-        this.timeInterval = 3;
-        this.learningRate = 0.15;
-        this.weightDemandAvg = 1;
-        this.weightDemandRand = 1;
-        this.weightDemandRat = 1;
-        this.predAvg = 0;
-        this.predRand = 0;
-        this.predRat = 0;
-        this.predDemand= 0;
-        
-        this.finalDemandPred = 0;
-
-              
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID){
@@ -138,10 +109,11 @@ class Agent{
     async buyFromNationalGrid(amount) {
         let amountTransaction = this.nationalGridPrice * (amount/1000);
         amountTransaction = parseInt( + amountTransaction.toFixed(18));
-        let transactionReceipt =0;
+        let transactionReceipt = 0;
         try{
             transactionReceipt = await web3.eth.sendTransaction({to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction, gas: '2000000'});
         }catch(err){console.log('buying from national grid error', err)};
+
         let date = (new Date).getTime();
 
         let newTransactionReceipt = {
@@ -278,9 +250,7 @@ class Agent{
 
     setCurrentTime(row){
         this.timeRow = row;
-        // if(this.bidHistory[this.timeRow - 1].timeRow)     
-        // var obj = agentsBattery.find(function (obj) { return obj.agentAccount === acceptedBids[i].address; });
-        //if there was a trade last hour, buy or sell, then update that on the amountOfCharge   
+   
     }
 
     unfilledOrdersProcess(){
@@ -292,12 +262,12 @@ class Agent{
 
         if(supply > demand) {
             excessEnergy = supply - demand;
-            excessEnergy = excessEnergy; //convert to Wh
+            excessEnergy = excessEnergy;
             this.charge(excessEnergy);
         }
         if(supply < demand) {
             shortageOfEnergy = demand - supply;
-            shortageOfEnergy = shortageOfEnergy; // convert to Wh
+            shortageOfEnergy = shortageOfEnergy; 
             this.discharge(shortageOfEnergy);
         }
     }
@@ -331,11 +301,11 @@ class Agent{
 
         if(supply > demand) {
             excessEnergy = supply - demand;
-            excessEnergy = excessEnergy; //convert to Wh
+            excessEnergy = excessEnergy; 
         }
         if(supply < demand) {
             shortageOfEnergy = demand - supply;
-            shortageOfEnergy = shortageOfEnergy; // convert to Wh
+            shortageOfEnergy = shortageOfEnergy; 
         }
 
         if(this.hasBattery == true) {
@@ -367,18 +337,15 @@ class Agent{
 
                     if( bidsCount > 0) {
                         bid = await exchange.methods.getBid(bidsCount-1).call();
-                        console.log('check if bid[1] is working');
                         if(this.historicalPrices[this.timeRow - 24] != null || this.historicalPrices[this.timeRow - 24] != undefined){
-                            let averagePrice = this.calculateYesterdayAverage()
+
+                            let averagePrice = this.calculateYesterdayAverage();
+
                             if(bid[1] > averagePrice){
-                                console.log(`excess energy, placing ask in iteration ${this.timeRow}`)
                                 await this.placeAsk(bid[1], excessEnergy, time);
                             }
-                            //check for possible problem in case none of them is true (ATTENTION!!!)
                             else if(bid[1] <= averagePrice){
                                 if( this.amountOfCharge + excessEnergy <= this.batteryCapacity) {
-
-                                    console.log('excess energy and chargin');
                                     this.charge(excessEnergy);
                                 }                           
                             }
@@ -400,6 +367,7 @@ class Agent{
                 let amountOfCharge = this.amountOfCharge;
                 let batteryCapacity = this.batteryCapacity;
                 let halfBattery = 0.5 * batteryCapacity;
+
                  if (amountOfCharge > halfBattery){
                     this.discharge(shortageOfEnergy);
                     return true;
@@ -407,15 +375,16 @@ class Agent{
                 else if(this.amountOfCharge < 0.5 * this.batteryCapacity && this.amountOfCharge > 0.2 * this.batteryCapacity){
                     let price = this.formulatePrice();
                     let amount = this.formulateAmount();
+
                     if( amount === false) {
                         return;
                     }
+                    
                     price = await this.convertToWei(price);
                     await this.placeBuy(price, amount, time);
                 }
                 else if (this.amountOfCharge <= 0.2 * this.batteryCapacity){
                     //shortage of energy or buy 50% of the batterys capacity
-                    console.log(`buying from national grid with charge${this.amountOfCharge} at iteration ${this.timeRow}`)
                     await this.buyFromNationalGrid(0.5 * this.batteryCapacity);
                 }   
             }  
@@ -447,7 +416,6 @@ class Agent{
 
                     await this.buyFromNationalGrid(shortageOfEnergy);
                 }
-                
             }
         }
     }
@@ -463,7 +431,6 @@ class Agent{
             demandSum += this.historicalDemand[i].demand;
             
         }
-        //energyNeeded = (this.amountOfCharge + supplySum - demandSum) / ( 0.2 * this.batteryCapacity );
         if(supplySum - demandSum >= 0) {
             return false;
         }
@@ -473,7 +440,7 @@ class Agent{
         if(this.amountOfCharge + energyNeeded >= this.batteryCapacity) {
             energyNeeded = this.batteryCapacity - this.amountOfCharge;
         }
-        return energyNeeded;//convert to Wh
+        return energyNeeded;
     }
 
     async convertToWei(price) {
