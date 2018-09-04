@@ -27,7 +27,7 @@ const gaussian = require('./gaussian');
 
 class Agent{
     constructor(batteryCapacity, batteryBool){
-        //FIND WAY TO CLACULATE AVERAGE OF PRICES FOR AN ENTIRE DAY (ATTENTION !!!!)
+
         this.timeRow = 0;
         this.balance =0;
         this.householdAddress = 0;
@@ -36,6 +36,7 @@ class Agent{
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
         this.WEI_IN_ETHER = 1000000000000000000;
+        this.balanceHistory = new Array();
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -59,22 +60,7 @@ class Agent{
         this.nationalGridPrice = 0.1437;
         this.blackOutTimes = new Array();
 
-        this.balanceHistory = new Array();
 
-        //predictor vars
-        this.timeInterval = 3;
-        this.learningRate = 0.15;
-        this.weightDemandAvg = 1;
-        this.weightDemandRand = 1;
-        this.weightDemandRat = 1;
-        this.predAvg = 0;
-        this.predRand = 0;
-        this.predRat = 0;
-        this.predDemand= 0;
-        
-        this.finalDemandPred = 0;
-
-              
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID){
@@ -278,9 +264,6 @@ class Agent{
 
     setCurrentTime(row){
         this.timeRow = row;
-        // if(this.bidHistory[this.timeRow - 1].timeRow)     
-        // var obj = agentsBattery.find(function (obj) { return obj.agentAccount === acceptedBids[i].address; });
-        //if there was a trade last hour, buy or sell, then update that on the amountOfCharge   
     }
 
     unfilledOrdersProcess(){
@@ -348,7 +331,8 @@ class Agent{
                     bid = await exchange.methods.getBid(bidsCount - 1).call();
 
                     if(this.historicalPrices[this.timeRow - 24] != null || this.historicalPrices[this.timeRow - 24] != undefined){
-                        if(bid.price > this.historicalPrices[this.timeRow - 24]){
+                        let averagePrice = this.calculateYesterdayAverage()
+                        if(bid.price > averagePrice){
     
                             await this.placeAsk(bid[1], excessEnergy, time);
                         }
@@ -367,18 +351,15 @@ class Agent{
 
                     if( bidsCount > 0) {
                         bid = await exchange.methods.getBid(bidsCount-1).call();
-                        console.log('check if bid[1] is working');
                         if(this.historicalPrices[this.timeRow - 24] != null || this.historicalPrices[this.timeRow - 24] != undefined){
-                            let averagePrice = this.calculateYesterdayAverage()
+                            let averagePrice = this.calculateYesterdayAverage();
+
                             if(bid[1] > averagePrice){
-                                console.log(`excess energy, placing ask in iteration ${this.timeRow}`)
                                 await this.placeAsk(bid[1], excessEnergy, time);
                             }
-                            //check for possible problem in case none of them is true (ATTENTION!!!)
                             else if(bid[1] <= averagePrice){
                                 if( this.amountOfCharge + excessEnergy <= this.batteryCapacity) {
 
-                                    console.log('excess energy and chargin');
                                     this.charge(excessEnergy);
                                 }                           
                             }
@@ -463,7 +444,6 @@ class Agent{
             demandSum += this.historicalDemand[i].demand;
             
         }
-        //energyNeeded = (this.amountOfCharge + supplySum - demandSum) / ( 0.2 * this.batteryCapacity );
         if(supplySum - demandSum >= 0) {
             return false;
         }
@@ -473,7 +453,7 @@ class Agent{
         if(this.amountOfCharge + energyNeeded >= this.batteryCapacity) {
             energyNeeded = this.batteryCapacity - this.amountOfCharge;
         }
-        return energyNeeded;//convert to Wh
+        return energyNeeded;
     }
 
     async convertToWei(price) {

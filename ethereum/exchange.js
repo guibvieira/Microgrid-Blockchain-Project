@@ -10,7 +10,7 @@ const Exchange = require ('./build/Exchange.json');
 //replace this address with the deployed version of exchange
 const instance = new web3.eth.Contract(
     JSON.parse(Exchange.interface),
-    '0xA656364D15db461750c464c6c21001fcFF8b4bA9'
+    '0x280925210865E34d1b900EfeE8C6f342ed887097'
 );
 
 // export default instance;

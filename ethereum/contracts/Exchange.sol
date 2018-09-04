@@ -319,7 +319,8 @@ contract Exchange {
 
         hh = Household(Bids[bid_index].owner);
         
-        uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+        //uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+        uint price = Bids[bid_index].price;
 
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) >= 0){
             uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;

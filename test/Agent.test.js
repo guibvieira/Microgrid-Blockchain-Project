@@ -144,7 +144,6 @@ describe('Agents', () => {
     }
 
     async function createAgents(metaData, householdHistoricData, batteryCapacity, batteryBool){
-        //console.log('this is meta data: ', metaData[0]);
         
         for (i=0; i<metaData.length/2; i++){
                 console.log(i);            

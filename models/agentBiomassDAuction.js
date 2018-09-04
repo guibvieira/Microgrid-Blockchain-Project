@@ -6,7 +6,6 @@ const web3 = new Web3 ( new Web3.providers.HttpProvider("http://localhost:8545")
 
 //calc functions
 const gaussian = require('./gaussian');
-const {convertArrayGasToPounds, convertArrayWeiToPounds, convertWeiToPounds, convertGasToPounds} = require('../simulation/conversions.js');
 
 //compiled contracts
 const compiledHousehold = require('../ethereum/build/Household.json');
@@ -15,7 +14,6 @@ const exchange = require('../ethereum/exchange');
 
 class AgentBiomass{
     constructor(BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX){
-        this.biomassPrice = BIOMASS_PRICE_MAX; //0.06 to 0.12
         this.baseElectValue = BIOMASS_PRICE_MIN;
         this.maxElectValue = BIOMASS_PRICE_MAX;
         this.tradingHistory = new Array();
@@ -69,7 +67,7 @@ class AgentBiomass{
             gas: '1999999'
         });
         
-        //Initial deposit of 1 ether to contract
+        //Initial deposit of 10 ether to contract
         await this.household.methods.deposit().send({
             from: this.ethereumAddress,
             gas: '1999999',
@@ -105,33 +103,19 @@ class AgentBiomass{
 
     async sellingLogic() {
         let price = await this.convertToWei(this.baseElectValue);
-        //OR let price = this.formulatePrice(); for variation of prices
         let price1 = this.formulatePrice();
         let price2 = this.formulatePrice();
         let price3 = this.formulatePrice();
-        let price4 = this.formulatePrice();
-      
+
         price1 = await this.convertToWei(price1);
         price2 = await this.convertToWei( price2);
         price3 = await this.convertToWei(price3);
-        price4 = await this.convertToWei( price4);
 
         let askCount = await exchange.methods.getAsksCount().call();
-        console.log('ask count', askCount);
-        // for(let i = 0; i < askCount; i++) {
-        //     let ask = await exchange.methods.getAsk(i).call();
-        //     console.log('ask biomass quantity', ask[2])
-        //     newAsk= {
-        //         price: parseInt(ask[1]),
-        //         quantity: parseInt(ask[2]),
-        //         address: ask[0],
-        //         time: parseInt(ask[3])
-        //     }
 
-        // }
-  
-        if (askCount < 30) {
-            console.log('placing ask from biomasss')
+        //prevent contract to be overloaded with sell orders
+        if (askCount < 100) {
+            
             await this.placeAsk(price, this.generationData[this.timeRow].supply/3);
             await this.placeAsk(price2, this.generationData[this.timeRow].supply/3);
             await this.placeAsk(price3, this.generationData[this.timeRow].supply/3);
@@ -154,8 +138,6 @@ class AgentBiomass{
 
     async placeAsk(price, amount){
         let date = (new Date()).getTime();
-
-        let checkPrice = convertWeiToPounds(price, this.WEI_IN_ETHER, this.PRICE_OF_ETHER);
 
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
@@ -184,6 +166,7 @@ class AgentBiomass{
     formulatePrice() {
         let {mean, stdev} = this.getDistributionParameters();
         let price = this.getCorrectValue(mean, stdev);
+
         //sometimes this returns defined, therefore while loop to prevent this
         while (price === undefined || price === null){
             price = this.getCorrectValue(mean, stdev);
@@ -192,13 +175,11 @@ class AgentBiomass{
     }
 
     getDistributionParameters(){
-        
         let minPrice = this.baseElectValue;
         let maxPrice = this.maxElectValue;
         let mean = ( minPrice + maxPrice) / 2;
         let stdev = ( - minPrice + mean) / 2;
         return { mean, stdev };
-        
     }
 
     getCorrectValue(mean, stdev){
@@ -209,10 +190,7 @@ class AgentBiomass{
             
             return value;
         }
-        
     } 
-            
-    
 }
 
 module.exports = AgentBiomass;
