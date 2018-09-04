@@ -26,20 +26,26 @@ contract Household{
     uint public amountOfCharge;
     uint public excessEnergy;
     
-    
-    
     struct Bid{
         address origin;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
+        uint date;
+    }
+
+    struct BidSuccessful{
+        address recipient;
+        uint price;
+        uint amount;
         uint date;
     }
     
     Bid[] public Bids;
     Bid[] public Asks;
+    BidSuccessful[] public SuccessfulBids;
     address public owner;
     address public contractAddress;
-    address public factory;
+    address public parent;
     address public exchangeAddress;
     uint public balanceContract;
     Exchange ex;
@@ -50,7 +56,7 @@ contract Household{
         owner = creator;
         batteryCapacity = capacity;
         amountOfCharge = capacity;
-        factory = watch_address;
+        parent = watch_address;
         contractAddress = address(this);
     }
     
@@ -66,8 +72,8 @@ contract Household{
     }
 
     function getSmartMeterDetails() public view returns(address, uint, uint, uint, uint, uint){
-        return (
-            owner, 
+        return(
+            owner,
             currentDemand,
             currentSupply,
             batteryCapacity,
@@ -77,7 +83,7 @@ contract Household{
     }
 
     
-    function getBids(uint index) public view returns(address, uint8, uint8, uint){
+    function getBid(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
                 Bids[index].price,
                 Bids[index].amount,
@@ -85,7 +91,7 @@ contract Household{
         );
     }
 
-    function getAsks(uint index) public view returns(address, uint8, uint8, uint){
+    function getAsk(uint index) public view returns(address, uint, uint, uint){
         return (Asks[index].origin,
                 Asks[index].price,
                 Asks[index].amount,
@@ -93,19 +99,42 @@ contract Household{
         );
     }
 
+    function getSuccessfulBid(uint index) public view returns(address, uint, uint, uint){
+        return (SuccessfulBids[index].recipient,
+                SuccessfulBids[index].price,
+                SuccessfulBids[index].amount,
+                SuccessfulBids[index].date
+        );
+    }
+
+    function getSuccessfulBidCount() public view returns(uint) {
+        return SuccessfulBids.length;
+    }
+
     function setExchange(address exchange) public {
         exchangeAddress = exchange;
     }
     
     function charge(uint amount) public restricted{
-        amountOfCharge += amount;
+        if(amountOfCharge + amount >= batteryCapacity) {
+            amountOfCharge = batteryCapacity;
+        }
+        else{
+            amountOfCharge += amount;
+        }
+        
     }
     
     function discharge(uint amount) public {
-        amountOfCharge -= amount;
+        if(amountOfCharge - amount <= 0) {
+            amountOfCharge = 0;
+        }
+        else{
+            amountOfCharge -= amount;
+        }
     }
     
-    function submitBid(uint8 price, uint8 amount, uint timestamp) public restricted returns (bool){
+    function submitBid(uint price, uint amount, uint timestamp) public restricted returns (bool){
         Bid memory newBid = Bid({
             origin: contractAddress,
             price: price,
@@ -119,7 +148,7 @@ contract Household{
         
     }
     
-    function submitAsk(uint8 price, uint8 amount, uint timestamp) public restricted returns(bool) {
+    function submitAsk(uint price, uint amount, uint timestamp) public restricted returns(bool) {
         Bid memory newAsk = Bid({
             origin: contractAddress,
             price: price,
@@ -129,17 +158,26 @@ contract Household{
         
         Asks.push(newAsk);
         ex = Exchange(exchangeAddress);
-        return ex.placeAsk(price, amount,timestamp);
+        return ex.placeAsk(price, amount, timestamp);
     }
 
-    function buyEnergy(uint _amount, address _recipient, uint _price ) public payable returns(bool successful){
+    function buyEnergy(uint _amount, address _recipient, uint _price, uint _date ) public payable returns(bool successful){
+        BidSuccessful memory newBid = BidSuccessful({
+            recipient: _recipient,
+            price: _price,
+            amount: _amount,
+            date: _date
+        });
 
         amountOfCharge += _amount;
 
         hh = Household(_recipient);
         hh.discharge(_amount);
-        
+
+
         _recipient.transfer( (_amount/1000)*_price);
+       
+        SuccessfulBids.push(newBid);
         
         return true;
     }
@@ -154,6 +192,14 @@ contract Household{
         ex.removeAsk(ask_index);
     }
 
+    function getBidsCount() public view returns(uint) {
+        return Bids.length;
+    }
+    
+    function getAsksCount() public view returns(uint) {
+        return Asks.length;
+    }
+
     modifier restricted() {
         require(msg.sender == owner);
         _;
@@ -165,15 +211,15 @@ contract Exchange {
 
     struct Bid {
         address owner;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
         uint date;
     }
 
     struct Ask {
         address owner;
-        uint8 price;
-        uint8 amount;
+        uint price;
+        uint amount;
         uint date;
     }
 
@@ -188,15 +234,16 @@ contract Exchange {
 
     function () public payable{}
 
-    function getBid(uint index) public view returns(address, uint, uint, uint){
+    function getBid(uint index) public returns(address, uint, uint, uint){
         return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
     }
 
-    function getAsk(uint index) public view returns(address, uint, uint, uint){
+    function getAsk(uint index) public  returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
 
-    function placeBid(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
+
+    function placeBid(uint _price, uint _amount, uint timestamp) public returns (bool) {
         Bid memory b;
         b.owner = msg.sender;
         b.price = _price;
@@ -231,7 +278,7 @@ contract Exchange {
         return true;
     }
 
-    function placeAsk(uint8 _price, uint8 _amount, uint timestamp) public returns (bool) {
+    function placeAsk(uint _price, uint _amount, uint timestamp) public returns (bool) {
         Ask memory a;
         a.owner = msg.sender;
         a.price = _price;
@@ -263,59 +310,60 @@ contract Exchange {
         }
         return true;
     }
-
+    
     function matchBid(uint bid_index, uint ask_index) public returns (bool) {
-        if (Bids[bid_index].amount == 0 || Asks[ask_index].amount == 0 || Bids[bid_index].price < Asks[ask_index].price) {
+        if (Bids.length == 0 || Asks.length == 0 || Bids[bid_index].price < Asks[ask_index].price) {
             return true;
         }
-        
+
         hh = Household(Bids[bid_index].owner);
         
-        uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+        //uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
+        uint price = Bids[bid_index].price;
 
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) >= 0){
-            uint8 remainder = Bids[bid_index].amount - Asks[ask_index].amount;
-            uint8 calcAmount = Bids[bid_index].amount - remainder;
+            uint remainder = Bids[bid_index].amount - Asks[ask_index].amount;
+            uint calcAmount = Bids[bid_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price );
-            
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price, Bids[bid_index].date);
+
             Bids[bid_index].amount = remainder;
             if(remainder==0){
-                delete Bids[bid_index];
+                removeBid(bid_index);
             }
-            delete Asks[ask_index];
+            removeAsk(ask_index);
             
-            return true;
+            return (matchBid(Bids.length-1,Asks.length-1));
         }
         
         if(int(Bids[bid_index].amount - Asks[ask_index].amount) < 0){
             remainder = Asks[ask_index].amount - Bids[bid_index].amount;
             calcAmount = Asks[ask_index].amount - remainder;
             
-            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price);
-            
-           Asks[ask_index].amount = remainder;
+            hh.buyEnergy(calcAmount, Asks[ask_index].owner, price, Bids[bid_index].date);
+
+            Asks[ask_index].amount = remainder;
             if(remainder == 0){
-                delete Asks[ask_index];
+                removeAsk(ask_index);
             }
-            delete Bids[bid_index];
+            removeBid(bid_index);
             
-            return true;
+            return (matchBid(Bids.length-1,Asks.length-1)); 
         }
     }
-    
-    function removeBid(uint index)  public {
-        if (index >= Bids.length) return;
 
+    function removeBid(uint index) public {
+        if (index >= Bids.length) return;
+        
         for (uint i = index; i<Bids.length-1; i++){
             Bids[i] = Bids[i+1];
         }
         Bids.length--;
     }
-    
-    function removeAsk(uint index)  public {
-        if (index >= Asks.length) return;
 
+    function removeAsk(uint index) public {
+        if (index >= Asks.length) return;
+        
         for (uint i = index; i<Asks.length-1; i++){
             Asks[i] = Asks[i+1];
         }

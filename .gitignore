@@ -1,3 +1,8 @@
 node_modules/**
 .next/**
+<<<<<<< HEAD
 .vscode/**
+=======
+.vscode/**
+*.csv
+>>>>>>> agentDoubleAuction
