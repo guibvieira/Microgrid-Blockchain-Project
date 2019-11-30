@@ -124,14 +124,14 @@ function sortFunctionByAmount(a, b) {
 // let intersection = calculateIntersection(array1, array2);
 // console.log('intersection', intersection);
 // //for error in prediction
-// let array1Amount = new Array();
-// let array1Price = new Array();
+// let array1Amount = [];
+// let array1Price = [];
 // for (let i=0; i< array1DescendingPrice.length; i++){
 //     array1Price.push(array1DescendingPrice[i][1]);
 //     array1Amount.push(array1DescendingPrice[i][0]);
 // }
-// let array2Amount = new Array();
-// let array2Price = new Array();
+// let array2Amount = [];
+// let array2Price = [];
 // for (let j=0; j< array2AscendingPrice.length; j++){
 //     array2Price.push(array2AscendingPrice[j][1]);
 //     array2Amount.push(array2AscendingPrice[j][0]);

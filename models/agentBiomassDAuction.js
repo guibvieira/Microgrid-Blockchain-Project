@@ -16,20 +16,20 @@ class AgentBiomass{
     constructor(BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX){
         this.baseElectValue = BIOMASS_PRICE_MIN;
         this.maxElectValue = BIOMASS_PRICE_MAX;
-        this.tradingHistory = new Array();
-        this.askHistory =  new Array();
-        this.balanceHistory = new Array();
-        this.generationData = new Array();
-        this.successfulAskHistory = new Array();
+        this.tradingHistory = [];
+        this.askHistory =  [];
+        this.balanceHistory = [];
+        this.generationData = [];
+        this.successfulAskHistory = [];
         this.timeRow = 0;
         this.biomassAddress = 0;
-        this.unFilledAsks = new Array();
+        this.unFilledAsks = [];
         this.PRICE_OF_ETHER = 250; 
         this.WEI_IN_ETHER = 1000000000000000000;
         this.householdAddress = 0;
         this.household = 0;
-        this.balanceHistoryAgent =  new Array();
-        this.balanceHistoryContract = new Array();
+        this.balanceHistoryAgent =  [];
+        this.balanceHistoryContract = [];
     }
 
     loadData(biomassData) {

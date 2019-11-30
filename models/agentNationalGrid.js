@@ -12,8 +12,8 @@ const exchange = require('../ethereum/exchange');
 class AgentNationalGrid{
     constructor(){
         this.nationalGridPrice = 0.1437;
-        this.purchaseHistory = new Array();
-        this.balanceHistory = new Array();
+        this.purchaseHistory = [];
+        this.balanceHistory = [];
     }
 
     async getAccount(index) {

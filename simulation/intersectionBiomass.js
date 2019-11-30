@@ -59,20 +59,20 @@ function calculateIntersection(array1, array2){
     array2AscendingPrice = array2.sort(sortAscending); //asks
 
     let intersection = [ 0, 0];
-    let array1x = new Array();
-    let array1y = new Array();
-    let array2x = new Array();
-    let array2y = new Array();
+    let array1x = [];
+    let array1y = [];
+    let array2x = [];
+    let array2y = [];
 
 
 
-    let array1Polynomial = new Array();
-    let array2Polynomial = new Array();
+    let array1Polynomial = [];
+    let array2Polynomial = [];
 
 
     let array1xsub = Array(array1DescendingPrice.length).fill(0);
 
-    let array2xsub = new Array()
+    let array2xsub = []
     
 
     for(let i = 0; i< array1DescendingPrice.length; i++) {
@@ -131,7 +131,7 @@ function calculateIntersection(array1, array2){
     intersection[1] = parseInt(minimum);
 
     function convertArrayWeiToPounds(arrayWei, WEI_IN_ETHER, priceOfEther) {
-        let tempArray = new Array();
+        let tempArray = [];
 
         for(let i=0; i<arrayWei.length; i++) {
             let costEther = arrayWei[i] / WEI_IN_ETHER;

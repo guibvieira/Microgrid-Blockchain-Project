@@ -23,7 +23,7 @@ class Agent{
         this.hasBattery = batteryBool;
         this.priceOfEther = 250;
         this.WEI_IN_ETHER = 1000000000000000000;
-        this.balanceHistory = new Array();
+        this.balanceHistory = [];
 
         //elect related variables
         this.batteryCapacity = batteryCapacity;
@@ -33,19 +33,19 @@ class Agent{
         this.shortageEnergy = 0;
         this.currentDemand = 0;
         this.currentSupply = 0; 
-        this.historicalDemand = new Array();
-        this.historicalSupply = new Array();
-        this.historicalPrices =  new Array();
-        this.successfulBidHistory = new Array();
-        this.successfulAskHistory = new Array();
-        this.nationalGridPurchases = new Array();
-        this.bidHistory = new Array();
-        this.askHistory = new Array();
+        this.historicalDemand = [];
+        this.historicalSupply = [];
+        this.historicalPrices =  [];
+        this.successfulBidHistory = [];
+        this.successfulAskHistory = [];
+        this.nationalGridPurchases = [];
+        this.bidHistory = [];
+        this.askHistory = [];
         this.householdID = 0;
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
         this.nationalGridPrice = 0.1437;
-        this.blackOutTimes = new Array();
+        this.blackOutTimes = [];
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID){

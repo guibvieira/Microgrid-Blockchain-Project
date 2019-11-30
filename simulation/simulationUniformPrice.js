@@ -22,13 +22,13 @@ let parse = require('csv-parse');
 let async = require('async');
 let calculateIntersection = require('./intersectionBiomass');
 let inputFile = './data/metadata-LCOE.csv';
-let id = new Array();
-let baseValue = new Array();
-let baseValueBattery = new Array();
+let id = [];
+let baseValue = [];
+let baseValueBattery = [];
 
-let agentsNoBattery = new Array();
-let agentsBattery = new Array();
-let numberOfBids = new Array();
+let agentsNoBattery = [];
+let agentsBattery = [];
+let numberOfBids = [];
 
 
 
@@ -44,15 +44,15 @@ const csvResultsFileName = 'output_test3_6months_46agents.csv'; //input
 
 
 async function init() {
-    let unFilledBids = new Array();
-    let unFilledAsks = new Array();
-    let aggregatedDemand = new Array();
-    let aggregatedSupply = new Array();
-    let historicalPricesPlot = new Array();
-    let biomassBalanceHistory = new Array();
-    let nationalGridBalanceHistory = new Array();
-    let amountBidsPerT = new Array();
-    let amountAsksPerT = new Array();
+    let unFilledBids = [];
+    let unFilledAsks = [];
+    let aggregatedDemand = [];
+    let aggregatedSupply = [];
+    let historicalPricesPlot = [];
+    let biomassBalanceHistory = [];
+    let nationalGridBalanceHistory = [];
+    let amountBidsPerT = [];
+    let amountAsksPerT = [];
 
     var accounts = await web3.eth.getAccounts();
 
@@ -74,7 +74,7 @@ async function init() {
     let biomassAddress = await agentBiomass.getAccount(accounts.length-2);
 
     simDuration = Math.round(simDuration);
-    let timeArray= new Array();
+    let timeArray= [];
     console.log(`using ${agentsBattery.length} amount of agents`);
     console.log('sim duration', simDuration);
     console.log('starting simulation');
@@ -119,7 +119,7 @@ async function init() {
             let intersection = calculateIntersection(bids, asks); //first is price, next is amount, lastly address
             let pricePounds = convertWeiToPounds(intersection[1], WEI_IN_ETHER, PRICE_OF_ETHER);
             console.log('price in pounds', pricePounds);
-            let paidBids = new Array();
+            let paidBids = [];
 
             //sort by decreasing amount
             bids = bids.sort(sortByAmount);
@@ -221,60 +221,60 @@ async function init() {
 
     }
 
-    let agentBalanceAverage = new Array();
+    let agentBalanceAverage = [];
 
     //biomass
-    let biomassBalance = new Array();
-    let biomassAskAmount = new Array();
-    let biomassVolumePounds = new Array();
-    let biomassVolumeElect = new Array();
-    let biomassVolume = new Array();
-    let testVolume = new Array();
+    let biomassBalance = [];
+    let biomassAskAmount = [];
+    let biomassVolumePounds = [];
+    let biomassVolumeElect = [];
+    let biomassVolume = [];
+    let testVolume = [];
 
     
     let history = agentsBattery[0].agent.historicalPrices;
-    let aggActualDemand =  new Array();
-    let chargeHistoryAggregated = new Array();
-    let transactionCostBid = new Array();
-    let transactionCostAsk = new Array();
-    let transactionCostAvg = new Array();
-    let transactionCost = new Array();
-    let nationalGridBidsAggAmount= new Array();
-    let nationalGridBidsAggGas = new Array();
-    let nationalGridPurchases = new Array();
-    let nationalGridTotalCost = new Array();
+    let aggActualDemand =  [];
+    let chargeHistoryAggregated = [];
+    let transactionCostBid = [];
+    let transactionCostAsk = [];
+    let transactionCostAvg = [];
+    let transactionCost = [];
+    let nationalGridBidsAggAmount= [];
+    let nationalGridBidsAggGas = [];
+    let nationalGridPurchases = [];
+    let nationalGridTotalCost = [];
     
-    let nationalGridVolumeElect = new Array();
-    let tradingVolumeElect = new Array();
+    let nationalGridVolumeElect = [];
+    let tradingVolumeElect = [];
     
-    let totalNumberTransactions = new Array();
-    let successfulBidsAggAmount = new Array();
-    let successfulBidsAggGas = new Array();
-    let successfulBidsTotalCost = new Array();
-    let percentageNatGridEnergyTrades = new Array();
-    let dailyVolume = new Array();
-    let blackOutInstances = new Array();
-    let hourlyExpenditure = new Array();
-    let nationalGridPurchasesDay = new Array();
+    let totalNumberTransactions = [];
+    let successfulBidsAggAmount = [];
+    let successfulBidsAggGas = [];
+    let successfulBidsTotalCost = [];
+    let percentageNatGridEnergyTrades = [];
+    let dailyVolume = [];
+    let blackOutInstances = [];
+    let hourlyExpenditure = [];
+    let nationalGridPurchasesDay = [];
 
-    let totalExpenditureHourly = new Array();
-    let totalExpenditure = new Array();
+    let totalExpenditureHourly = [];
+    let totalExpenditure = [];
 
     //averages parameters (for each agent)
-    let averageNumberTransactions = new Array();
-    let averageNumberTransactionsDay = new Array();
-    let averageNationalGridPurchases = new Array(); 
-    let averageNationalGridPurchasesDay = new Array(); 
-    let averageExpenditureDay = new Array();
-    let averageAsksDay = new Array();
-    let averageBidsDay = new Array();
+    let averageNumberTransactions = [];
+    let averageNumberTransactionsDay = [];
+    let averageNationalGridPurchases = []; 
+    let averageNationalGridPurchasesDay = []; 
+    let averageExpenditureDay = [];
+    let averageAsksDay = [];
+    let averageBidsDay = [];
 
 
 
     let agent
 
-    let simulationCSV = new Array();
-    let csvData = new Array();
+    let simulationCSV = [];
+    let csvData = [];
     
 
     const sumPrices= history.reduce((a, b) => a + b, 0);
@@ -285,24 +285,24 @@ async function init() {
     //Calculating Parameters from simulation to plot
     //
     for (let i = 0; i < simDuration; i++) {
-        let demand = new Array();
-        let supply = new Array();
-        let charge = new Array();
-        let gasCostBids = new Array();
-        let gasCostAsks = new Array();
-        let nationalGridBidsGas = new Array();
-        let nationalGridBidsAmount = new Array();
-        let nationalGridSumCosts = new Array();
-        let nationalGridBidsQuantity = new Array();
-        let successfulBidsGas = new Array();
-        let successfulBidsAmount = new Array();
-        let succesfulBidsSumCosts = new Array();
-        let successfulBidsElect = new Array();
-        let biomassBidsElect = new Array();
-        let biomassVolumeTemp2 = new Array();
+        let demand = [];
+        let supply = [];
+        let charge = [];
+        let gasCostBids = [];
+        let gasCostAsks = [];
+        let nationalGridBidsGas = [];
+        let nationalGridBidsAmount = [];
+        let nationalGridSumCosts = [];
+        let nationalGridBidsQuantity = [];
+        let successfulBidsGas = [];
+        let successfulBidsAmount = [];
+        let succesfulBidsSumCosts = [];
+        let successfulBidsElect = [];
+        let biomassBidsElect = [];
+        let biomassVolumeTemp2 = [];
       
         
-        let agentsBalanceHistory = new Array();
+        let agentsBalanceHistory = [];
 
 
         //conversion from wei to pounds
@@ -514,13 +514,13 @@ async function init() {
             if(i % 24 == 0) {  
                 let initialAverageBalance = 0;
                 let finalAverageBalance = 0;
-                let calcAverageTransactions = new Array();
-                let calcAverageNatGridPurchases = new Array();
-                let calcAverageBalanceDay = new Array();
-                let calcAverageAsksDay = new Array();
-                let calcAverageBidsDay = new Array();
-                let calcTradingVolume = new Array();
-                let calcNationalGridTransactionDay = new Array();
+                let calcAverageTransactions = [];
+                let calcAverageNatGridPurchases = [];
+                let calcAverageBalanceDay = [];
+                let calcAverageAsksDay = [];
+                let calcAverageBidsDay = [];
+                let calcTradingVolume = [];
+                let calcNationalGridTransactionDay = [];
 
                 for (let j = i - 24; j < i; j++){
 
@@ -661,8 +661,8 @@ function deleteRow(arr, row) {
 
 async function getFiles() {
     console.log('reading files...');
-    let householdFiles = new Array();
-    let householdHistoricData = new Array();
+    let householdFiles = [];
+    let householdHistoricData = [];
     let metaData= await loadData(inputFile);
 
     metaData = deleteRow(metaData, 0);// remove header of file
@@ -682,7 +682,7 @@ async function getFiles() {
 
 async function createAgents(metaData, householdHistoricData, biomassData, batteryCapacity, batteryBool, BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX) {
     console.log('creating agents...');
-    let agents = new Array();
+    let agents = [];
     let agentNationalGrid = new AgentNationalGrid();
     let agentBiomass = new AgentBiomass(BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX);
 
@@ -709,8 +709,8 @@ async function createAgents(metaData, householdHistoricData, biomassData, batter
 }
 
 async function getExchangeBids() {
-    let bids = new Array();
-    let asks = new Array();
+    let bids = [];
+    let asks = [];
     let bid = 0;
     let ask = 0;
 
@@ -788,10 +788,10 @@ async function clearMarket() {
 
 
 function findMatch() {
-    let temp = new Array();
-    let matchingOrders = new Array();
-    let nonMatchedBids = new Array();
-    let nonMatchedAsks = new Array();
+    let temp = [];
+    let matchingOrders = [];
+    let nonMatchedBids = [];
+    let nonMatchedAsks = [];
     for(let i=0; i < bids.length; i++) {
         for(let j=0; j < asks.length; j++) {
             temp[j] = Math.abs(bids[i][0] - asks[j][0]);
@@ -825,7 +825,7 @@ function indexOfSmallest(a) {
 }
 
 function removeFirsRow(householdHistoricData) { 
-    let tempArray = new Array();
+    let tempArray = [];
    
        for(let i = 1; i < householdHistoricData.length; i++) {
            tempArray.push(householdHistoricData[i])

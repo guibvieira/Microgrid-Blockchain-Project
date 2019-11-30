@@ -100,8 +100,8 @@ describe('Agents', () => {
         let bidsCount = await exchange.methods.getBidsCount().call();
         let asksCount = await exchange.methods.getAsksCount().call();
 
-        let bids = new Array();
-        let asks = new Array();
+        let bids = [];
+        let asks = [];
         
         for(i=0; i<bidsCount; i++){
             let bid = await exchange.methods.getBid(i).call();
@@ -129,13 +129,13 @@ describe('Agents', () => {
     });
 
     it('can deploy and pass historical data to each agent', async () =>{
-        let householdHistoricData = new Array();
-        let metaData = new Array();
+        let householdHistoricData = [];
+        let metaData = [];
         let inputFile = 'data/metadata-LCOE.csv';
-        let id = new Array();
-        let baseValue = new Array();
-        let baseValueBattery = new Array();
-        let householdFiles = new Array();
+        let id = [];
+        let baseValue = [];
+        let baseValueBattery = [];
+        let householdFiles = [];
 
 
     async function loadData(inputFile){
@@ -195,7 +195,7 @@ describe('Agents', () => {
     let agentsNoBattery =  await createAgents(metaDataNoBattery, householdDataNoBattery, 0, false);
     
     let simDuration = householdHistoricDataFinal[0].length;    //start simulation
-    let timeArray= new Array();
+    let timeArray= [];
     
     for (i= 0; i < simDuration; i++){
         timeArray.push(i);

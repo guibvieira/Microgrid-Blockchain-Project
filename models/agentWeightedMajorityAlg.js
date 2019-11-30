@@ -39,8 +39,8 @@ class Agent{
         this.shortageEnergy = 0;
         this.currentDemand = 0;
         this.currentSupply = 0; 
-        this.historicalDemand = new Array();
-        this.historicalSupply = new Array();
+        this.historicalDemand = [];
+        this.historicalSupply = [];
         this.householdID = 0;
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
@@ -195,7 +195,7 @@ class Agent{
 
     predictorAverage(timeRow){
         let timeInterval = 5; //5 hours of time interval
-        let averageArray = new Array();
+        let averageArray = [];
 
         if( timeRow <= timeInterval){
             return this.historicalDemandTemp[timeRow];
@@ -209,7 +209,7 @@ class Agent{
     predictorRandom(timeRow){
 
         let timeInterval = 5;
-        let randomArray = new Array();
+        let randomArray = [];
 
         if( timeRow <= timeInterval){
             return this.historicalDemandTemp[timeRow];
@@ -233,12 +233,12 @@ class Agent{
     makeDemandPrediction(timeRowTarget){
         let timeRow = this.timeRow;
 
-        this.historicalDemandTemp = new Array();
+        this.historicalDemandTemp = [];
         for(let k = 0; k <= timeRow; k++){
             this.historicalDemandTemp.push(this.historicalDemand[k].demand);
         }
         
-        let arrayDemandPred = new Array();
+        let arrayDemandPred = [];
         let j = 0;
         for (let i= timeRow+ 1; i<= timeRowTarget; i++){
             this.predAvg = this.predictorAverage(i);
@@ -250,7 +250,7 @@ class Agent{
             j++;
         }
 
-        let predictedDemand = new Array();
+        let predictedDemand = [];
         for (let x = timeRow; x <= timeRowTarget; x++){
             predictedDemand.push(this.historicalDemandTemp[x]);
         }
