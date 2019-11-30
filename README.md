@@ -14,11 +14,11 @@ If interested, read the dissertation file in the repository.
 --------------- Application ---------------
 
 Pre-requesites for simulation:
-- Node.js
+- Node.js v10.16.0
 - NPM (Node package manager)
 
 Pre-requesites for online App use:
-- Node.js
+- Node.js v10.16.0
 - NPM (Node package manager)
 - Metamask
 
