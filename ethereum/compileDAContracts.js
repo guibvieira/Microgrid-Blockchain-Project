@@ -4,7 +4,7 @@ const fs = require('fs-extra'); // gives access to file system with extra functi
 
 const buildPath = path.resolve(__dirname, 'build'); //currentdirectoy __dirname; 
 fs.removeSync(buildPath);
-
+console.log('hello');
 const householdPath = path.resolve(__dirname, 'contracts', 'ContractsDoubleAuction.sol'); // get path to the contracts directory
 const source = fs.readFileSync(householdPath, 'utf8');
 const output = solc.compile(source, 1).contracts;

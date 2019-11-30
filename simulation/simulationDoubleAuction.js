@@ -32,13 +32,13 @@ let numberOfBids = new Array();
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 21;  // input
+const simulationDays = 7.1;  // input
 const PRICE_OF_ETHER = 250; 
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.05; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_3week.csv'; //input
+const csvResultsFileName = 'simulationContinuousDoubleAuction_test8_1week.csv'; //input
 
 
 async function init() {
@@ -194,7 +194,7 @@ async function init() {
                 if(newBid.time == i) {
                     bidsPrice.push(newBid.price);
                     bidsQuantity.push(newBid.quantity);
-                    bidsTransactionAmount.push(newBid.price * (newBid.quantity/1000));
+                    bidsTransactionAmount.push(newBid.price * (newBid.quantity/1000)); //perkWh
                 }
             }
         }

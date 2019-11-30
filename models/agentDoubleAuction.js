@@ -187,7 +187,6 @@ class Agent{
     }
 
     async placeAsk(price, amount, date){
-        console.log(`placing ask of price ${this.convertWeiToPounds(price)}`);
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '3000000'

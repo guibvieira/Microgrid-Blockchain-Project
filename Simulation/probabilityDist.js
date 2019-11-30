@@ -47,6 +47,7 @@ console.log(`mean is ${mean} and stdev is ${stdev}`);
 let standard = gaussian(mean, stdev);
 let result=getCorrectValue();
 console.log('result', standard());
+
 // make a bunch of standard variates
 // for(i=0; i<2000; i++) {
 //     let value = standard();
