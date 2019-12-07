@@ -24,9 +24,7 @@ let id = [];
 let baseValue = [];
 let baseValueBattery = [];
 
-let agentsNoBattery = [];
 let agentsBattery = [];
-let numberOfBids = [];
 
 
 
@@ -78,6 +76,7 @@ async function init() {
     let simulationDurationCalc = 365 / simulationDays;
     let simDuration = householdHistoricData[0].length / Math.round(simulationDurationCalc);    //start simulation
 
+    console.log('about to get account from national grid')
     let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length - 1); // make the last account from ganache to be the national grid address
     let biomassAddress = await agentBiomass.getAccount(accounts.length - 2);
     let biomassContract = await agentBiomass.deployContract();
@@ -105,15 +104,14 @@ async function init() {
 
         agentsBattery.forEach(async (singleAgent, agentInd) => {
             //first run populate nationalGrid agent with an account an a contract 
-            if (agentInd == 0) {
-                try {
+            if (i === 0) {
+                // try {
                     await singleAgent.agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
                     await singleAgent.agent.getAccount(agentInd);
                     await singleAgent.agent.deployContract();
-                } catch (err) {
-                    console.log('error from first iteration deploying contract', err);
-                }
-
+                // } catch (err) {
+                    // console.log('error from first iteration deploying contract', err);
+                // }
             }
 
             //Set time for agents so they can fetch their historical  demand and supply data within the classes, set balances to contracts 
@@ -770,7 +768,7 @@ async function createAgents(metaData, householdHistoricData, biomassData, batter
         agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
 
         agentAccount = await agent.getAccount(item);
-
+        console.log('agent account', agentAccount);
         //household = await agent.deployContract();
 
         await agent.loadSmartMeterData(householdHistoricData[item], baseValue[item], baseValueBattery[item], id[item]);
@@ -781,6 +779,7 @@ async function createAgents(metaData, householdHistoricData, biomassData, batter
         }
         agents.push(newAgent);
     }
+    console.log('agents succesfully created !');
     return { agents, agentNationalGrid, agentBiomass };
 }
 

@@ -88,7 +88,6 @@ class Agent {
 
     async setAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
-
         let contractBalance = await web3.eth.getBalance(this.householdAddress);
         this.balance = balance;
         this.balanceHistoryAgent.push(balance);
@@ -482,7 +481,7 @@ class Agent {
         }
 
         if (this.hasBattery == false) {
-            let value = standard();
+            // let value = standard();
             while (value < this.nationalGridPrice && value > this.baseElectValue) {
                 return value;
             }
@@ -490,17 +489,20 @@ class Agent {
     }
 
     async deployContract() {
-
+        console.log('deploying contract');
         await factory.methods.createHousehold(12000).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
         let households = await factory.methods.getDeployedHouseholds().call();
-
+        console.log('households', households);
         let household = await new web3.eth.Contract(
             JSON.parse(compiledHousehold.interface),
             households[households.length - 1]
         );
+        console.log('household', household);
+        console.log('households address', household.options.address);
+
         this.householdAddress = household.options.address;
         this.household = household;
 
