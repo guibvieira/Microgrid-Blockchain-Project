@@ -42,6 +42,7 @@ contract Household{
     
     Bid[] public Bids;
     Bid[] public Asks;
+    Bid[] public SuccessfulAsks;
     BidSuccessful[] public SuccessfulBids;
     address public owner;
     address public contractAddress;
@@ -63,7 +64,7 @@ contract Household{
     function deposit() public payable {
     }
 
-    function () public payable {}
+    function () public payable {} //when you receive a payment, we could consider this a successful ask, therbey being able to track them
 
     function setSmartMeterDetails(uint _demand, uint _supply, uint _excessEnergy) public {
         currentDemand = _demand;
@@ -107,8 +108,20 @@ contract Household{
         );
     }
 
+    function getSuccessfulAsk(uint index) public view returns(address, uint, uint, uint){
+        return (SuccessfulAsks[index].origin,
+                SuccessfulAsks[index].price,
+                SuccessfulAsks[index].amount,
+                SuccessfulAsks[index].date
+        );
+    }
+
     function getSuccessfulBidCount() public view returns(uint) {
         return SuccessfulBids.length;
+    }
+
+    function getSuccessfulAskCount() public view returns(uint) {
+        return SuccessfulAsks.length;
     }
 
     function setExchange(address exchange) public {
@@ -174,11 +187,22 @@ contract Household{
         hh = Household(_recipient);
         hh.discharge(_amount);
 
-
         _recipient.transfer( (_amount/1000)*_price);
        
         SuccessfulBids.push(newBid);
         
+        return true;
+    }
+
+    function processSuccessfulAsk(uint _amount, address _sender, uint _price, uint _date) public returns(bool successful) {
+        Bid memory newAsk = Bid({
+            origin: _sender,
+            price: _price,
+            amount: _amount,
+            date: _date
+        });
+
+        SuccessfulAsks.push(newAsk);
         return true;
     }
 
@@ -226,6 +250,7 @@ contract Exchange {
     Bid[] public Bids;
     Ask[] public Asks;
     Household hh;
+    Household hhSeller;
 
     constructor() public payable{}
     
@@ -317,6 +342,8 @@ contract Exchange {
         }
 
         hh = Household(Bids[bid_index].owner);
+        hhSeller = Household(Asks[ask_index].owner);
+        //TODO make a seller household so we can invoke processingAsk function which would record successful asks 
         
         //uint price = (Asks[ask_index].price + Bids[bid_index].price) / 2;
         uint price = Bids[bid_index].price;
@@ -326,6 +353,7 @@ contract Exchange {
             uint calcAmount = Bids[bid_index].amount - remainder;
             
             hh.buyEnergy(calcAmount, Asks[ask_index].owner, price, Bids[bid_index].date);
+            hhSeller.processSuccessfulAsk(calcAmount, Bids[bid_index].owner, price, Bids[bid_index].date);
 
             Bids[bid_index].amount = remainder;
             if(remainder==0){
@@ -341,6 +369,7 @@ contract Exchange {
             calcAmount = Asks[ask_index].amount - remainder;
             
             hh.buyEnergy(calcAmount, Asks[ask_index].owner, price, Bids[bid_index].date);
+            hhSeller.processSuccessfulAsk(calcAmount, Bids[bid_index].owner, price, Bids[bid_index].date);
 
             Asks[ask_index].amount = remainder;
             if(remainder == 0){

@@ -261,12 +261,10 @@ class Agent{
 
         if(supply > demand) {
             excessEnergy = supply - demand;
-            excessEnergy = excessEnergy;
             this.charge(excessEnergy);
         }
         if(supply < demand) {
             shortageOfEnergy = demand - supply;
-            shortageOfEnergy = shortageOfEnergy; 
             this.discharge(shortageOfEnergy);
         }
     }

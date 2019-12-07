@@ -103,60 +103,50 @@ async function init() {
         }
 
 
-        // agentsBattery.forEach((agent, index) => {
-        //     //first run populate nationalGrid agent with an account an a contract 
-        //     if (index == 0) {
-        //         try {
-        //             await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
-        //             await agentsBattery[j].agent.getAccount(j);
-        //             await agentsBattery[j].agent.deployContract();
-        //         } catch (err) {
-        //             console.log('error from first iteration deploying contract', err);
-        //         }
-
-        //     }
-
-
-        // })
-        for (let j = 0; j < agentsBattery.length; j++) {
-
+        agentsBattery.forEach(async (singleAgent, agentInd) => {
             //first run populate nationalGrid agent with an account an a contract 
-            if (i == 0) {
+            if (agentInd == 0) {
                 try {
-                    await agentsBattery[j].agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
-                    await agentsBattery[j].agent.getAccount(j);
-                    await agentsBattery[j].agent.deployContract();
+                    await singleAgent.agent.setNationalGrid(NATIONAL_GRID_PRICE, nationalGridAddress);
+                    await singleAgent.agent.getAccount(agentInd);
+                    await singleAgent.agent.deployContract();
                 } catch (err) {
                     console.log('error from first iteration deploying contract', err);
                 }
 
             }
-            //Set time for agents so they can fetch their historical  demand and supply data within the classes, set balances to contracts
-            agentsBattery[j].agent.setCurrentTime(i);
+
+            //Set time for agents so they can fetch their historical  demand and supply data within the classes, set balances to contracts 
+            singleAgent.agent.setCurrentTime(i);
             try {
-                await agentsBattery[j].agent.setAgentBalance();
+                await singleAgent.agent.setAgentBalance();
             } catch (err) {
                 console.log('error from setting agent balance', err);
             }
 
-
-
-
             try {
-                await agentsBattery[j].agent.purchaseLogic();
+                await singleAgent.agent.purchaseLogic();
             } catch (err) {
                 console.log('error from purchase logic', err);
             }
-            await agentsBattery[j].agent.updateCharge();
-        }
+            await singleAgent.agent.updateCharge();
+
+        })
 
 
         bidCount.push(await exchange.methods.getBidsCount().call());
         askCount.push(await exchange.methods.getAsksCount().call());
 
         //check successful asks from Biomass agent
+        //TODO this is wrong, need to be asks that we are getting
+        // 1 - Get successful asks from contract, I added this capability to the contracts (expensive for contracts, cheaper for simulation)
+        // 2 - Calcualte successful asks from checking agents bids and see which ones went to the biomass agents address (cheaper for contracts, more expensive for simulation)
         let askCountBiomass = agentBiomass.household.methods.getSuccessfulBidCount().call();
 
+        async function getBiomassAsks(askCountBiomass, agentBiomass) {
+
+        }
+        //calculate biomassSellingVolumePounds, calculate biomasSellingPrice,, amount of successfull Asks
         let biomassBidsPrice = [];
         let biomassBidsQuantity = [];
         let biomassBidsTransactionAmount = [];
@@ -174,6 +164,8 @@ async function init() {
                 biomassBidsQuantity.push(newAsk.quantity);
                 biomassBidsTransactionAmount.push(newAsk.price * (newAsk.quantity / 1000));
             }
+
+
         }
         amountSuccessfulAsks.push(biomassBidsPrice.length);
 
@@ -437,6 +429,7 @@ async function init() {
 
                     if (agentsBattery[j].agent.successfulBidHistory[k].receiver == biomassAddress) {
                         biomassBidsElect.push(agentsBattery[j].agent.successfulBidHistory[k].quantity)
+                        // TODO explore this possibility of recording successfulAsks from biomass contract = > biomassSuccessfulAsks.push(agentsBattery[j].agent.successfulBidHistory[k])
                     }
                 }
             }
