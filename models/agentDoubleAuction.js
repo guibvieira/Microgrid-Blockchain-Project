@@ -7,8 +7,7 @@ const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 //compiled contracts
 const compiledHousehold = require('../ethereum/build/Household.json');
-const factory = require('../ethereum/factory');
-const exchange = require('../ethereum/exchange');
+
 
 //calc functions
 const gaussian = require('./gaussian');
@@ -33,10 +32,6 @@ class Agent {
         this.batteryCapacity = batteryCapacity;
         this.amountOfCharge = batteryCapacity;
         this.chargeHistory = [batteryCapacity];
-        this.excessEnergy = 0;
-        this.shortageEnergy = 0;
-        this.currentDemand = 0;
-        this.currentSupply = 0;
         this.historicalDemand = [];
         this.historicalSupply = [];
         this.historicalPrices = [];
@@ -49,7 +44,6 @@ class Agent {
         this.baseElectValue = 0;
         this.baseElectValueBattery = 0;
         this.nationalGridPrice = 0.1437;
-        this.blackOutTimes = [];
     }
 
     async loadSmartMeterData(historicData, baseElectValue, baseElectValueBattery, householdID) {
@@ -88,7 +82,6 @@ class Agent {
 
     async setAgentBalance() {
         let balance = await web3.eth.getBalance(this.ethereumAddress);
-
         let contractBalance = await web3.eth.getBalance(this.householdAddress);
         this.balance = balance;
         this.balanceHistoryAgent.push(balance);
@@ -172,7 +165,7 @@ class Agent {
     async placeBuy(price, amount, date) {
         let transactionReceipt = await this.household.methods.submitBid(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
-            gas: '3000000'
+            gas: '6700000'
         });
         let newBid = {
             address: this.ethereumAddress,
@@ -190,7 +183,7 @@ class Agent {
         console.log(`placing ask of price ${this.convertWeiToPounds(price)}`);
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
-            gas: '3000000'
+            gas: '6700000'
         });
         let newAsk = {
             address: this.ethereumAddress,
@@ -279,7 +272,7 @@ class Agent {
         this.chargeHistory.push(newObj);
     }
 
-    async purchaseLogic() {
+    async purchaseLogic(exchange) {
         let demand = this.historicalDemand[this.timeRow].demand;
         let supply = this.historicalSupply[this.timeRow].supply;
 
@@ -489,14 +482,17 @@ class Agent {
         }
     }
 
-    async deployContract() {
+    updatePriceHistory(price, time) {
+        this.historicalPrices[time] = price
+    }
+
+    async deployContract(factory, exchange) {
 
         await factory.methods.createHousehold(12000).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
         let households = await factory.methods.getDeployedHouseholds().call();
-
         let household = await new web3.eth.Contract(
             JSON.parse(compiledHousehold.interface),
             households[households.length - 1]

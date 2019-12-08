@@ -1,17 +1,27 @@
 //Using infura, uncomment lines under ganache method for it to work
 //const web3 = require('./web3.js');
 
+const readCSV = require('../utils/readFile');
+const inputFile = 'deployedAddresses.csv';
 //Using ganache
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
 const web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:8545"));
 const Exchange = require('./build/Exchange.json');
 
-//replace this address with the deployed version of exchange
-const instance = new web3.eth.Contract(
-    JSON.parse(Exchange.interface),
-    '0x04fed0F3C965cCC1827850E8413C827558903b9C'
-);
+async function initExchange() {
+    async function loadData(inputFile) {
+        let resultSet = await readCSV(inputFile);
+        return resultSet[1][0]; //return factory address only
+    }
+    let exchangeContract = await loadData(inputFile);
+    //replace this address with the deployed version of householdFactory
+    const instanceExchange = new web3.eth.Contract(
+        JSON.parse(Exchange.interface),
+        `${exchangeContract}`
+    );
 
-// export default instance;
-module.exports = instance;
+    console.log('Factory contract instance created');
+    return instanceExchange;
+}
+module.exports = initExchange; //cannot use await init() here to get instance value, due to not being wrapped inside async function
