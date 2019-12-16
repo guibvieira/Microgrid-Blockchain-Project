@@ -1,7 +1,7 @@
 //requirements
 //Using ganache
 // const assert = require('assert');
-const { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids } = require('../utils/helpers');
+const { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids } = require('../utils/helpers');
 
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
@@ -25,18 +25,16 @@ let inputFile = './data/metadata-LCOE.csv';
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 2;  // input
+const simulationDays = 14;  // input
 const PRICE_OF_ETHER = 250; // pounds
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.05; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_2days.csv'; //output
+const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_14days.csv'; //output
 
 
 async function init() {
-    let aggregatedDemand = [];
-    let aggregatedSupply = [];
     let historicalPricesPlot = [];
     let biomassAgentBalanceHistory = [];
     let biomassContractBalanceHistory = [];
@@ -52,7 +50,7 @@ async function init() {
     let agentBalanceAverageAgent = [];
     let agentBalanceAverageContract = [];
     let agentExpenditureTotal = [];
-    
+
 
     const exchange = await initExchange();
     const factory = await initHouseholdFactory();
@@ -73,13 +71,13 @@ async function init() {
 
     let nationalGridAddress = await agentNationalGrid.getAccount(accounts.length - 1); // make the last account from ganache to be the national grid address
     let biomassAddress = await agentBiomass.getAccount(accounts.length - 2);
-    let {biomassContract, biomassContractAddress} = await agentBiomass.deployContract(factory, exchange);
+    let { biomassContract, biomassContractAddress } = await agentBiomass.deployContract(factory, exchange);
 
     simDuration = Math.round(simDuration);
     let timeArray = [];
     console.log(`using ${agentsBattery.length} agents`);
     console.log('sim duration in hours', simDuration);
-    console.log('sim duration in days', simDuration * 24);
+    console.log('sim duration in days', simDuration / 24);
     console.log('starting simulation');
 
     for (let i = 0; i < simDuration; i++) {
@@ -122,9 +120,18 @@ async function init() {
             await agentsBattery[j].agent.updateCharge();
         }
 
-        console.log('calculating metrics');
         let bidCountInExchange = await exchange.methods.getBidsCount().call();
         let askCountInExchange = await exchange.methods.getAsksCount().call();
+        console.log('exchange bid count', bidCountInExchange);
+        console.log('exchange ask count', askCountInExchange);
+
+        // let asksTemp = [];
+        // for (let z = 0; z < askCountInExchange; z++) {
+        //     let ask = await exchange.methods.getAsk(z).call();
+        //     console.log('ask in exchange', convertWeiToPounds(ask[2]));
+        //     asksTemp.push(ask);
+        // }
+        // console.log('ask prices in exchange', asksTemp);
 
         //check successful asks from Biomass agent
         //TODO this is wrong, need to be asks that we are getting
@@ -172,18 +179,16 @@ async function init() {
         let demand = [];
         let supply = [];
 
-
         let agentsBalanceHistoryAgent = [];
         let agentsBalanceHistoryContract = [];
         let transactionCostAvg = 0; //changed from array
         let transactionCosts = 0; //changed from array
         let transactionCostBid = [];
         let transactionCostAsk = [];
-        let nationalGridBidsAggAmount = 0;
         let totalNumberTransactions = [];
         let contractInteractionCosts = [];
         let total_expenditure_hourly = [];
-        
+
         let gasCostAsks = [];
         let gasCostBids = [];
 
@@ -196,17 +201,47 @@ async function init() {
         let successfulBidsTotalCost = [];
 
         let nationalGridBidsAmount = [];
-        let nationalGridSumCosts = [];
         let nationalGridBidsQuantity = [];
+        let nationalGridBidsAggAmount = 0;
 
-        let biomassBalance = [];
         let biomassAskGas = [];
         let biomassVolumeElect = [];
+        let biomassAskAmount = [];
 
         let biomassBidsElect = [];
         let biomassAskGasTemp = [];
+        let biomassVolumePounds = [];
         let nationalGridBidsGas = [];
 
+
+        let biomassVolumeTemp = 0;
+
+        for (let j = 0; j < agentBiomass.askHistory.length; j++) {
+            if (agentBiomass.askHistory[j].timeRow == i) {
+
+                biomassAskGasTemp.push(agentBiomass.askHistory[j].transactionCost);
+            }
+            else {
+                biomassAskGasTemp.push(0);
+            }
+
+        }
+        for (let j = 0; j < agentBiomass.successfulAskHistory.length; j++) {
+            if (agentBiomass.successfulAskHistory[j].timeRow == i) {
+                biomassVolumeTemp += agentBiomass.successfulAskHistory[j].amount;
+            }
+        }
+        if (biomassVolumeTemp == 0) {
+            biomassAskAmount.push(0);
+        }
+        else {
+            let costEther = biomassVolumeTemp / WEI_IN_ETHER;
+            let costPounds = costEther * (parseFloat(PRICE_OF_ETHER.toFixed(18)));
+            costPounds = parseFloat(costPounds.toFixed(3));
+            biomassAskAmount.push(costPounds);
+        }
+        //calculate volume biomass
+        biomassAskGas.push(convertArrayGasToPounds(biomassAskGasTemp, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER));
 
         for (let j = 0; j < agentsBattery.length; j++) {
 
@@ -225,6 +260,7 @@ async function init() {
                     bidsPrice.push(newBid.price);
                     bidsQuantity.push(newBid.quantity);
                     bidsTransactionAmount.push(newBid.price * (newBid.quantity / 1000));
+                    // console.log(`time:${i} found successful bid at price ${newBid.price}, quantity ${newBid.quantity}, transaction amount: ${newBid.price * (newBid.quantity / 1000)}`);
                 }
             }
 
@@ -235,76 +271,18 @@ async function init() {
             agentsBalanceHistoryAgent.push(convertWeiToPounds(agentsBattery[j].agent.balanceHistoryAgent[i], WEI_IN_ETHER, PRICE_OF_ETHER));
             agentsBalanceHistoryContract.push(convertWeiToPounds(agentsBattery[j].agent.balanceHistoryContract[i], WEI_IN_ETHER, PRICE_OF_ETHER))
 
-            for (let k = 0; k < agentsBattery[j].agent.chargeHistory.length; k++) {
+            // console.log(`time ${i}: charge from agent ${j} is ${agentsBattery[j].agent.chargeHistory[agentsBattery[j].agent.chargeHistory.length - 1].charge} `);
+            charge.push(agentsBattery[j].agent.amountOfCharge);
 
-                if (agentsBattery[j].agent.chargeHistory[k].timeRow == i) {
-                    console.log(`updating charge in time ${i} for agent ${j}, index of charge history ${k}`);
-                    charge.push(agentsBattery[j].agent.chargeHistory[k].charge);
-                }
-                else {
-                    charge.push(0);
-                }
-            }
-            for (let k = 0; k < agentsBattery[j].agent.costTransactions.length; k++) {
-                if (agentsBattery[j].agent.costTransactions[k].timeRow == i) {
-                    contractInteractionCosts.push(agentsBattery[j].agent.costTransactions[k].transactionCost);
-                }
-            }
+            contractInteractionCosts = getContractInteractionCosts(agentsBattery[j].agent.costTransactions, contractInteractionCosts, i);
+            gasCostBids = getGasCostBidHistory(agentsBattery[j].agent.bidHistory, gasCostBids, i);
+            gasCostAsks = getGasCostAskHistory(agentsBattery[j].agent.askHistory, gasCostAsks, i);
 
-            //get Bids from bid history
-            for (let k = 0; k < agentsBattery[j].agent.bidHistory.length; k++) {
-
-                if (agentsBattery[j].agent.bidHistory[k].timeRow == i) {
-                    gasCostBids.push(agentsBattery[j].agent.bidHistory[k].transactionCost);
-                }
-            }
-
-            //get ask history
-            for (let z = 0; z < agentsBattery[j].agent.askHistory.length; z++) {
-
-                if (agentsBattery[j].agent.askHistory[z].timeRow == i) {
-                    gasCostAsks.push(agentsBattery[j].agent.askHistory[z].transactionCost);
-                }
-            }
-
-            //get bids that were successful 
-            for (let k = 0; k < agentsBattery[j].agent.successfulBidHistory.length; k++) {
-                if (agentsBattery[j].agent.successfulBidHistory[k].timeRow == i) {
-                    successfulBidsElect.push(agentsBattery[j].agent.successfulBidHistory[k].quantity);
-                    successfulBidsGas.push(agentsBattery[j].agent.successfulBidHistory[k].transactionCost);
-                    successfulBidsAmount.push(agentsBattery[j].agent.successfulBidHistory[k].transactionAmount);
-                    succesfulBidsSumCosts.push(convertGasToPounds(agentsBattery[j].agent.successfulBidHistory[k].transactionCost, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER));
-                    succesfulBidsSumCosts.push(convertWeiToPounds(agentsBattery[j].agent.successfulBidHistory[k].transactionAmount, WEI_IN_ETHER, PRICE_OF_ETHER));
-
-                    if (agentsBattery[j].agent.successfulBidHistory[k].receiver == biomassContractAddress) {
-                        console.log('found a biomass trade and adding it to biomass electrical metric', i)
-                        biomassBidsElect.push(agentsBattery[j].agent.successfulBidHistory[k].quantity)
-                        // TODO explore this possibility of recording successfulAsks from biomass contract = > biomassSuccessfulAsks.push(agentsBattery[j].agent.successfulBidHistory[k])
-                    }
-                }
-            }
-
-            //get NationalGrid Purchases
-            // let obj = agentsBattery[j].agent.nationalGridPurchases.find((obj) => obj.timeRow == i)
-            // obj.
-
-            // let obj = agentsBattery.find(function (obj) { return obj.agentAccount === asks[i].address; });
-            //             obj.agent.discharge(asks[i].amount);
-            //             unFilledAsks.push(asks[i]);
-            for (let k = 0; k < agentsBattery[j].agent.nationalGridPurchases.length; k++) {
-                if (agentsBattery[j].agent.nationalGridPurchases[k].timeRow == i) {
-                    nationalGridBidsQuantity.push(agentsBattery[j].agent.nationalGridPurchases[k].quantity);
-                    nationalGridBidsAmount.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionAmount);
-                    nationalGridBidsGas.push(agentsBattery[j].agent.nationalGridPurchases[k].transactionCost);
-                    nationalGridSumCosts.push(convertGasToPounds(agentsBattery[j].agent.nationalGridPurchases[k].transactionCost, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER));
-                    nationalGridSumCosts.push(convertWeiToPounds(agentsBattery[j].agent.nationalGridPurchases[k].transactionAmount, WEI_IN_ETHER, PRICE_OF_ETHER));
-                }
-            }
+            let { nationalGridBidsQuantityReturned, nationalGridBidsAmountReturned, nationalGridBidsGasReturned } = getNationalGridPurchases(agentsBattery[j].agent, nationalGridBidsQuantity, nationalGridBidsAmount, nationalGridBidsGas, i);
+            nationalGridBidsQuantity = nationalGridBidsQuantityReturned;
+            nationalGridBidsAmount = nationalGridBidsQuantityReturned;
+            nationalGridBidsGas = nationalGridBidsQuantityReturned;
         }
-
-
-
-
 
         //After Looping through agents
         //Calculations for gas
@@ -332,64 +310,33 @@ async function init() {
         } else if (contractInteractionCosts.length == 0) {
             chargeDischargeTXCosts = 0;
         }
-        //Some random time steps,a Nan appears, hence this loop
-        // for(let j = 0; j < transactionCostAsk.length; j++) {
-        //     if(isNaN(transactionCostAsk[j])) {
-        //         transactionCostAsk[j] = 0;
-        //     }
-        // }
 
         //calculate sum of transactions
         let sumTransactions = gasCostAsks.length + gasCostBids.length + contractInteractionCosts.length + biomassAskGasTemp.length;
         totalNumberTransactions.push(sumTransactions);
 
         transactionCostAvg = (transactionCostAsk[i] + transactionCostBid[i] + chargeDischargeTXCosts) / sumTransactions;
-        transactionCosts = transactionCostAsk[i] + transactionCostBid[i] + chargeDischargeTXCosts + biomassAskGas[i];
+        if (biomassAskGas[i]) {
+            transactionCosts = transactionCostAsk[i] + transactionCostBid[i] + chargeDischargeTXCosts + biomassAskGas[i];
+        } else {
+            transactionCosts = transactionCostAsk[i] + transactionCostBid[i] + chargeDischargeTXCosts
+        }
 
         let tradingVolumeElect = 0;
-        //calc for successful bids (the ones actually went through where there was a transaction of ether)
-        if (successfulBidsGas.length > 0) {
-            let succesfulBidsSumCostsPounds = succesfulBidsSumCosts.reduce((a, b) => a + b, 0);
-            let bidsAmountPoundsAveraged = convertArrayWeiToPounds(successfulBidsAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
-            let bidsGasPoundsAveraged = convertArrayGasToPounds(successfulBidsGas, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER);
-            successfulBidsTotalCost[i] = succesfulBidsSumCostsPounds;
-            successfulBidsAggAmount[i] = bidsAmountPoundsAveraged;
-            successfulBidsAggGas[i] = bidsGasPoundsAveraged;
-            tradingVolumeElect = successfulBidsElect.reduce((a, b) => a + b, 0);
-            let biomassVolumeElect = biomassBidsElect.reduce((a, b) => a + b, 0);
-        } else if (successfulBidsGas == 0) {
-            successfulBidsTotalCost[i] = 0;
-            successfulBidsAggAmount[i] = 0;
-            successfulBidsAggGas[i] = 0;
-            tradingVolumeElect = 0;
-            biomassVolumeElect.push(0);
-        }
 
         //calc the national grid purchases, amount, gas consumed and frequency
         if (nationalGridBidsGas.length > 0) {
-            let nationalGridSumCostsPounds = nationalGridSumCosts.reduce((a, b) => a + b, 0);
-            let nationalGridBidsAmountPounds = convertArrayWeiToPounds(nationalGridBidsAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
-            nationalGridBidsAggAmount = nationalGridBidsAmountPounds;
-
+            nationalGridBidsAggAmount = convertArrayWeiToPounds(nationalGridBidsAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
         }
         else if (nationalGridBidsGas.length == 0) {
             nationalGridBidsAggAmount = 0;
         }
-
-        
-
         //sum up recorded metric from all the agents
-        
         let succesfulBidsQuantity = bidsQuantity.reduce((a, b) => a + b, 0);
-        console.log(`time ${i} bidsQuantity is ${succesfulBidsQuantity}`);
-        console.log(`time ${i} tradingVolumeElect is ${tradingVolumeElect}`);
-        // let tradingVolumeElect = succesfulBidsQuantity + 
 
-
-        const aggregatedDemand = demand.reduce((a, b) => a + b, 0);
-        const aggregatedSupply = supply.reduce((a, b) => a + b, 0);
+        let aggregatedDemand = demand.reduce((a, b) => a + b, 0);
+        let aggregatedSupply = supply.reduce((a, b) => a + b, 0);
         let chargeHistoryAggregated = charge.reduce((a, b) => a + b, 0);
-
 
         //update the balances
         nationalGridBalanceHistory.push(await agentNationalGrid.getAgentBalance()); //initialise the balance count
@@ -400,9 +347,12 @@ async function init() {
         //agent balance averaged - history
         agentBalanceAverageAgent.push((agentsBalanceHistoryAgent.reduce((a, b) => a + b, 0)) / agentsBattery.length);
         agentBalanceAverageContract.push(agentsBalanceHistoryContract.reduce((a, b) => a + b, 0) / agentsBattery.length);
-        console.log('')
+
         agentExpenditureTotal.push(agentBalanceAverageAgent[i] + agentBalanceAverageContract[i]);
-        total_expenditure_hourly.push(agentExpenditureTotal[i - 1] - agentExpenditureTotal[i]);
+        let previousHourExpenditure = agentExpenditureTotal[i - 1];
+        let currentExpenditure = agentExpenditureTotal[i];
+        let total_hourly = previousHourExpenditure - currentExpenditure;
+        total_expenditure_hourly.push(total_hourly);
 
         //get hourly metrics for agent expenditure
         let hourlyExpenditure = 0;
@@ -412,28 +362,37 @@ async function init() {
             hourlyExpenditure = hourlyExpenditurePounds + hourlyExpenditureTrade;
         }
 
+        let currentElectPrice = 0;
         if (bidsPrice.length > 0) {
             let pricePounds = convertArrayWeiToPounds(bidsPrice, WEI_IN_ETHER, PRICE_OF_ETHER);
+            currentElectPrice = pricePounds / bidsPrice.length;
             succesfulBidsPrice.push((pricePounds / bidsPrice.length));
             succesfulBidsTransactionAmount = convertArrayWeiToPounds(bidsTransactionAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
         }
         else {
             succesfulBidsPrice.push(0);
         }
-        console.log('prices this time', succesfulBidsPrice[i]);
-        agentsBattery.map(singleAgent => singleAgent.agent.updatePriceHistory(succesfulBidsPrice[i], i));
+        agentsBattery.map(singleAgent => singleAgent.agent.updatePriceHistory(currentElectPrice, i));
 
         let amountSuccessfulBids = bidsPrice.length;
 
+        bidCountInExchange = await exchange.methods.getBidsCount().call();
+        askCountInExchange = await exchange.methods.getAsksCount().call();
 
+        if (bidCountInExchange > 100) {
+            await clearMarketBids(exchange, bidCountInExchange);
+        }
+        if (askCountInExchange >= 100) {
+            await clearMarketHighPriceAsks(exchange, askCountInExchange);
+        }
 
         writeDataToCSV(
             i,
             aggregatedDemand,
             aggregatedSupply,
-            succesfulBidsPrice[i],
+            currentElectPrice,
             transactionCostAvg,
-            total_expenditure_hourly[i],
+            total_hourly,
             transactionCosts,
             succesfulBidsTransactionAmount,
             biomassSuccesfulBidsTransactionAmount,
@@ -471,38 +430,54 @@ async function init() {
 // no_bids: gasCostBids.length,
 // no_asks: gasCostAsks.length + amountSuccessfulAsks[i],
 // no_bids_market: bidCount[i],
-        // no_asks_market: askCount[i],
-        // charge_history_agg: chargeHistoryAggregated[i],
+// no_asks_market: askCount[i],
+// charge_history_agg: chargeHistoryAggregated[i],
 // avg_expenditure_hourly: hourlyExpenditure[i],
-// // function writeDataToCSV(
-// //     time,
-// gg_demand,
-// //     agg_supply,
-// //     historical_prices,
-// //     cost_transaction,
-// //     total_expenditure_hourly,
-//         //     total_transaction_cost,
-// rading_volume,
-// //     biomass_volume,
-// //     nat_grid_volumel,
-// //     trading_volume_elect,
-// o_total_transactions,
-// //     no_trades_market,
-// //     no_nat_grid_transactions,
-//         //     no_bids,
-//         //     no_asks,
-// //     no_bids_market,
-// //     no_asks_market,
-// //     charge_history_agg,
-// vg_expenditure_hourly,
-// svResultsFileName
-// // )
-
-
 
 init();
 
+function getNationalGridPurchases(agent, nationalGridBidsQuantity, nationalGridBidsAmount, nationalGridBidsGas, i) {
+    let nationalGridBidsQuantityReturned = nationalGridBidsQuantity;
+    let nationalGridBidsAmountReturned = nationalGridBidsAmount;
+    let nationalGridBidsGasReturned = nationalGridBidsGas;
 
+    for (let k = 0; k < agent.nationalGridPurchases.length; k++) {
+        if (agent.nationalGridPurchases[k].timeRow == i) {
+            nationalGridBidsQuantity.push(agent.nationalGridPurchases[k].quantity);
+            nationalGridBidsAmount.push(agent.nationalGridPurchases[k].transactionAmount);
+            nationalGridBidsGas.push(agent.nationalGridPurchases[k].transactionCost);
+        }
+    }
 
+    return { nationalGridBidsQuantityReturned, nationalGridBidsAmountReturned, nationalGridBidsGasReturned };
+}
 
+function getGasCostBidHistory(bidHistory, gasCostBids, i) {
+    //get Bids from bid history
+    for (let k = 0; k < bidHistory.length; k++) {
+        if (bidHistory[k].timeRow == i) {
+            gasCostBids.push(bidHistory[k].transactionCost);
+        }
+    }
+    return gasCostBids;
+}
 
+function getGasCostAskHistory(askHistory, gasCostAsks, i) {
+    //get ask history
+    for (let z = 0; z < askHistory.length; z++) {
+        if (askHistory[z].timeRow == i) {
+            gasCostAsks.push(askHistory[z].transactionCost);
+        }
+    }
+    return gasCostAsks;
+}
+
+function getContractInteractionCosts(costTransactions, contractInteractionCosts, i) {
+    let agentObj = costTransactions.find((obj) => obj.timeRow == i);
+    for (let k = 0; k < costTransactions.length; k++) {
+        if (costTransactions[k].timeRow == i) {
+            contractInteractionCosts.push(costTransactions[k].transactionCost);
+        }
+    }
+    return contractInteractionCosts;
+}

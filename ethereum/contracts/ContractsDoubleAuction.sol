@@ -174,7 +174,6 @@ contract Household{
         hh = Household(_recipient);
         hh.discharge(_amount);
 
-
         _recipient.transfer((_amount/1000)*_price);
        
         SuccessfulBids.push(newBid);

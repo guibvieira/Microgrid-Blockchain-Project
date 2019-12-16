@@ -26,11 +26,11 @@ async function init() {
     async function deployFactory() {
         const accounts = await web3.eth.getAccounts();
 
-        console.log('Attempting to deploy from account', accounts[0]);
+        console.log('Attempting to deploy from account', accounts[accounts.length - 1]);
 
         const result = await new web3.eth.Contract(JSON.parse(compiledFactory.interface))
             .deploy({ data: '0x' + compiledFactory.bytecode })
-            .send({ gas: '1999999', from: accounts[0] });
+            .send({ gas: '1999999', from: accounts[accounts.length - 1] });
 
         console.log('Contract Factory deployed to', result.options.address);
         return result.options.address;
@@ -40,11 +40,11 @@ async function init() {
     async function deployExchange() {
         const accounts = await web3.eth.getAccounts();
 
-        console.log('Attempting to deploy from account', accounts[0]);
+        console.log('Attempting to deploy from account', accounts[accounts.length - 1]);
 
         const result = await new web3.eth.Contract(JSON.parse(compiledExchange.interface))
             .deploy({ data: '0x' + compiledExchange.bytecode })
-            .send({ gas: '1999999', from: accounts[0] });
+            .send({ gas: '1999999', from: accounts[accounts.length - 1] });
 
         console.log('Contract Exchange deployed to', result.options.address);
         return result.options.address;

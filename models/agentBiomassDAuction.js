@@ -57,9 +57,9 @@ class AgentBiomass {
             JSON.parse(compiledHousehold.interface),
             households[households.length - 1]
         );
-        let biomassContractAddress = household.options.address;
-        this.householdAddress = household.options.address;
-        this.household = household;
+        let biomassContractAddress = biomassContract.options.address;
+        this.householdAddress = biomassContract.options.address;
+        this.household = biomassContract;
 
         await this.household.methods.setExchange(exchange.options.address).send({
             from: this.ethereumAddress,
@@ -112,7 +112,7 @@ class AgentBiomass {
 
         let askCount = await exchange.methods.getAsksCount().call();
         //prevent contract to be overloaded with sell orders
-        if (askCount < 30) {
+        if (askCount < 100) {
             await this.placeAsk(price, this.generationData[this.timeRow].supply / 3);
             await this.placeAsk(price2, this.generationData[this.timeRow].supply / 3);
             await this.placeAsk(price3, this.generationData[this.timeRow].supply / 3);

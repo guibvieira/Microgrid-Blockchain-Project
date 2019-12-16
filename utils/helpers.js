@@ -2,6 +2,9 @@ let fs = require('fs');
 var csv = require("fast-csv");
 const readCSV = require('./readFile.js');
 var csvWriter = require('csv-write-stream');
+const ganache = require('ganache-cli');
+const Web3 = require('web3');
+const web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 
 
 function writeDataToCSV(
@@ -114,9 +117,7 @@ function generateBiomassData(householdHistoricData) {
         let singleHousehold = removeFirsRow(householdHistoricData[i]);
 
         for (let j = 0; j < singleHousehold.length; j++) {
-
-            biomassData[j] += singleHousehold[j][1] * 0.6; //satisfy 60% of their needs
-
+            biomassData[j] += singleHousehold[j][1] * 0.6; //satisfy 60% of their needs, modify to 40% to check if we can reduce the supply side
         }
     }
     return biomassData;
@@ -129,6 +130,28 @@ function sortByAmount(a, b) {
     }
     else {
         return (a.amount > b.amount) ? -1 : 1;
+    }
+}
+
+async function clearMarketBids(exchange, bidsCount) {
+    let accounts = await web3.eth.getAccounts();
+
+    for (let i = bidsCount - 1; i >= 0; i--) {
+        await exchange.methods.removeBid(i).send({
+            from: accounts[accounts.length - 1],
+            gas: '2000000'
+        });
+    }
+}
+
+async function clearMarketHighPriceAsks(exchange, asksCount) {
+    let accounts = await web3.eth.getAccounts();
+
+    for (let i = 0; i < asksCount / 2; i++) {
+        await exchange.methods.removeAsk(i).send({
+            from: accounts[accounts.length - 1],
+            gas: '2000000'
+        });
     }
 }
 
@@ -154,7 +177,6 @@ async function clearMarket() {
 
     bidsCount = await exchange.methods.getBidsCount().call();
     asksCount = await exchange.methods.getAsksCount().call();
-
 }
 
 
@@ -319,4 +341,4 @@ async function getExchangeBids(exchange) {
     return { bids, asks, bidsVolumeElect, asksVolumeElect };
 }
 
-module.exports = { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids };
+module.exports = { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids };

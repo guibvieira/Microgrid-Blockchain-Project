@@ -117,6 +117,7 @@ class Agent {
         let amountTransaction = this.nationalGridPrice * (amount / 1000);
         amountTransaction = parseInt(+ amountTransaction.toFixed(18));
 
+
         let transactionReceipt = await web3.eth.sendTransaction({ to: this.nationalGridAddress, from: this.ethereumAddress, value: amountTransaction, gas: '2000000' });
         let date = (new Date).getTime();
 
@@ -150,6 +151,7 @@ class Agent {
             receiver: receiver,
             date: date
         }
+
         this.successfulBidHistory.push(newTransactionReceipt);
         this.charge(amount);
         return transactionReceipt;
@@ -176,11 +178,10 @@ class Agent {
             transactionCost: transactionReceipt.gasUsed
         }
         this.bidHistory.push(newBid);
-        return true;
+        return transactionReceipt;
     }
 
     async placeAsk(price, amount, date) {
-        console.log(`placing ask of price ${this.convertWeiToPounds(price)}`);
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '6700000'
@@ -211,6 +212,7 @@ class Agent {
             excessEnergy = excessEnergy;
             this.charge(excessEnergy);
         }
+
         if (supply < demand) {
             shortageOfEnergy = demand - supply;
             shortageOfEnergy = shortageOfEnergy;
@@ -220,16 +222,18 @@ class Agent {
     }
 
     async charge(amount) {
-
+        // console.log('amount being charged to contract', amount);
         let transactionReceipt = await this.household.methods.charge(amount).send({
             from: this.ethereumAddress,
             gas: '1000000'
         });
+        // console.log('amountOfCharge in contract after charging', amountOfCharge);
         let newObj = {
             timeRow: this.timeRow,
             transactionCost: transactionReceipt.gasUsed
         }
         this.costTransactions.push(newObj);
+        this.amountOfCharge += amount;
     }
 
     async discharge(amount) {
@@ -242,6 +246,7 @@ class Agent {
             transactionCost: transactionReceipt.gasUsed
         }
         this.costTransactions.push(newObj);
+        this.amountOfCharge -= amount;
     }
 
     setCurrentTime(row) {
@@ -264,7 +269,13 @@ class Agent {
 
     async updateCharge() {
         let amountOfCharge = await this.household.methods.amountOfCharge().call();
-        this.amountOfCharge = parseInt(amountOfCharge);
+        if (amountOfCharge > this.batteryCapacity || amountOfCharge < 0) {
+            this.amountOfCharge = this.chargeHistory[this.timeRow - 1].charge;
+        }
+        else {
+            this.amountOfCharge = parseInt(amountOfCharge);
+        }
+
         let newObj = {
             timeRow: this.timeRow,
             charge: parseInt(amountOfCharge)

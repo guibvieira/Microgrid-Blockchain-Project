@@ -1,9 +1,11 @@
 
-random();
+let x = [
+    { time: 1 },
+    { time: 2 },
+    { time: 3 }
+]
 
-do {
-    value = standard();
-    console.log('value from gaussian', value)
-} while (!(value < this.maxElectValue && value > this.baseElectValue));
-
-return value
+let obj = x.find(obj => obj.time == 3)
+// x = getValue(x);
+// x = getValue(x);
+console.log('x', obj);
