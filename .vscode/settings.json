@@ -1,15 +1,16 @@
 {
-    "eslint.validate": [
-        "javascript",
-        "javascriptreact",
-        {
-          "language": "typescript",
-          "autoFix": true
-        },
-        {
-          "language": "typescriptreact",
-          "autoFix": true
-        }
-    ],
-    "editor.formatOnSave": true
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    {
+      "language": "typescript",
+      "autoFix": true
+    },
+    {
+      "language": "typescriptreact",
+      "autoFix": true
+    }
+  ],
+  "editor.formatOnSave": true,
+  "terminal.integrated.shell.windows": "C:\\WINDOWS\\sysnative\\bash.exe"
 }

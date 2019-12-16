@@ -182,6 +182,7 @@ class Agent {
     }
 
     async placeAsk(price, amount, date) {
+        console.log('placing ask price', price);
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,
             gas: '6700000'
@@ -225,7 +226,7 @@ class Agent {
         // console.log('amount being charged to contract', amount);
         let transactionReceipt = await this.household.methods.charge(amount).send({
             from: this.ethereumAddress,
-            gas: '1000000'
+            gas: '3000000'
         });
         // console.log('amountOfCharge in contract after charging', amountOfCharge);
         let newObj = {
@@ -239,7 +240,7 @@ class Agent {
     async discharge(amount) {
         let transactionReceipt = await this.household.methods.discharge(amount).send({
             from: this.ethereumAddress,
-            gas: '1000000'
+            gas: '3000000'
         });
         let newObj = {
             timeRow: this.timeRow,
@@ -269,8 +270,11 @@ class Agent {
 
     async updateCharge() {
         let amountOfCharge = await this.household.methods.amountOfCharge().call();
+        console.log('amount of charge', amountOfCharge);
         if (amountOfCharge > this.batteryCapacity || amountOfCharge < 0) {
             this.amountOfCharge = this.chargeHistory[this.timeRow - 1].charge;
+            await this.household.methods.setCharge(this.amountOfCharge);
+            console.log('correcting charge in contract');
         }
         else {
             this.amountOfCharge = parseInt(amountOfCharge);

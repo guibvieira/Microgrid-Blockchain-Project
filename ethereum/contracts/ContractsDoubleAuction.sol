@@ -133,6 +133,10 @@ contract Household{
             amountOfCharge -= amount;
         }
     }
+
+    function setCharge(uint amount) public {
+        amountOfCharge = amount;
+    }
     
     function submitBid(uint price, uint amount, uint timestamp) public restricted returns (bool){
         Bid memory newBid = Bid({

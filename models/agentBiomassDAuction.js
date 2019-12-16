@@ -135,6 +135,7 @@ class AgentBiomass {
 
     async placeAsk(price, amount) {
         let date = (new Date()).getTime();
+        console.log('placing ask price', price);
 
         let transactionReceipt = await this.household.methods.submitAsk(price, amount, this.timeRow).send({
             from: this.ethereumAddress,

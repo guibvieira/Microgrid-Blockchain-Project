@@ -139,7 +139,7 @@ async function clearMarketBids(exchange, bidsCount) {
     for (let i = bidsCount - 1; i >= 0; i--) {
         await exchange.methods.removeBid(i).send({
             from: accounts[accounts.length - 1],
-            gas: '2000000'
+            gas: '6700000'
         });
     }
 }
@@ -148,10 +148,14 @@ async function clearMarketHighPriceAsks(exchange, asksCount) {
     let accounts = await web3.eth.getAccounts();
 
     for (let i = 0; i < asksCount / 2; i++) {
-        await exchange.methods.removeAsk(i).send({
-            from: accounts[accounts.length - 1],
-            gas: '2000000'
-        });
+        try {
+            await exchange.methods.removeAsk(i).send({
+                from: accounts[accounts.length - 1],
+                gas: '6700000'
+            });
+        } catch (err) {
+            console.log('error while trying to delete high price asks in th exchange');
+        }
     }
 }
 
@@ -163,14 +167,14 @@ async function clearMarket() {
     for (let i = bidsCount - 1; i >= 0; i--) {
         await exchange.methods.removeBid(i).send({
             from: accounts[accounts.length - 1],
-            gas: '2000000'
+            gas: '6700000'
         });
         bidsCount = await exchange.methods.getBidsCount().call();
     }
     for (let i = asksCount - 1; i >= 0; i--) {
         await exchange.methods.removeAsk(i).send({
             from: accounts[accounts.length - 1],
-            gas: '2000000'
+            gas: '6700000'
         });
         asksCount = await exchange.methods.getAsksCount().call();
     }
@@ -341,4 +345,4 @@ async function getExchangeBids(exchange) {
     return { bids, asks, bidsVolumeElect, asksVolumeElect };
 }
 
-module.exports = { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids };
+module.exports = { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids, clearMarketHighPriceAsks };

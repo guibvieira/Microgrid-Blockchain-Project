@@ -1,7 +1,7 @@
 //requirements
 //Using ganache
 // const assert = require('assert');
-const { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids } = require('../utils/helpers');
+const { writeDataToCSV, indexOfSmallest, removeFirsRow, generateBiomassData, clearMarket, findMatch, sortByAmount, loadData, getFiles, createAgents, getExchangeBids, clearMarketBids, clearMarketHighPriceAsks } = require('../utils/helpers');
 
 const ganache = require('ganache-cli');
 const Web3 = require('web3');
@@ -20,21 +20,29 @@ const compiledHousehold = require('../ethereum/build/Household.json');
 const { convertArrayGasToPounds, convertArrayWeiToPounds, convertWeiToPounds, convertGasToPounds } = require('./conversions.js');
 
 let inputFile = './data/metadata-LCOE.csv';
+const userConfigFile = 'userConfig.csv';
 
 
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 185;  // input
 const PRICE_OF_ETHER = 250; // pounds
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.05; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_6months.csv'; //output
+let simulationDays = 185;  // input
+let csvResultsFileName = 'simulationContinuousDoubleAuction_test1_6months.csv'; //output
 
 
 async function init() {
+
+    let userConfig = await loadData(userConfigFile);
+    console.log('user config, ', userConfig);
+    simulationDays = userConfig[1][1];
+    csvResultsFileName = `simulationContinuousDoubleAuction_test1_${userConfig[1][1]}days.csv`;
+    console.log('will write to file', csvResultsFileName);
+
     let historicalPricesPlot = [];
     let biomassAgentBalanceHistory = [];
     let biomassContractBalanceHistory = [];
@@ -125,13 +133,13 @@ async function init() {
         console.log('exchange bid count', bidCountInExchange);
         console.log('exchange ask count', askCountInExchange);
 
-        // let asksTemp = [];
-        // for (let z = 0; z < askCountInExchange; z++) {
-        //     let ask = await exchange.methods.getAsk(z).call();
-        //     console.log('ask in exchange', convertWeiToPounds(ask[2]));
-        //     asksTemp.push(ask);
-        // }
-        // console.log('ask prices in exchange', asksTemp);
+        let asksTemp = [];
+        for (let z = 0; z < askCountInExchange; z++) {
+            let ask = await exchange.methods.getAsk(z).call();
+            asksTemp.push(ask[2]);
+        }
+        let askPounds = convertArrayWeiToPounds(asksTemp, WEI_IN_ETHER, PRICE_OF_ETHER);
+        console.log('ask prices in exchange', askPounds / askCountInExchange);
 
         //check successful asks from Biomass agent
         //TODO this is wrong, need to be asks that we are getting
