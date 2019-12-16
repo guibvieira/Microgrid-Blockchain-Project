@@ -25,13 +25,13 @@ let inputFile = './data/metadata-LCOE.csv';
 
 //customisable variables for Simulation
 const GASPRICE = 2000000000; //wei
-const simulationDays = 14;  // input
+const simulationDays = 185;  // input
 const PRICE_OF_ETHER = 250; // pounds
 const NATIONAL_GRID_PRICE = 0.1437; //input
 const BIOMASS_PRICE_MIN = 0.05; //input
 const BIOMASS_PRICE_MAX = 0.12; //input
 const WEI_IN_ETHER = 1000000000000000000;
-const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_14days.csv'; //output
+const csvResultsFileName = 'simulationContinuousDoubleAuction_test1_6months.csv'; //output
 
 
 async function init() {
