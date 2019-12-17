@@ -47,10 +47,15 @@ class AgentBiomass {
 
     async deployContract(factory, exchange) {
 
-        await factory.methods.createHousehold(0).send({
-            from: this.ethereumAddress,
-            gas: '1000000'
-        });
+        try {
+            await factory.methods.createHousehold(0).send({
+                from: this.ethereumAddress,
+                gas: '6000000'
+            });
+        } catch (err) {
+            console.log('error could not create household from biomass agent', err);
+        }
+
         let households = await factory.methods.getDeployedHouseholds().call();
 
         let biomassContract = await new web3.eth.Contract(
@@ -61,17 +66,27 @@ class AgentBiomass {
         this.householdAddress = biomassContract.options.address;
         this.household = biomassContract;
 
-        await this.household.methods.setExchange(exchange.options.address).send({
-            from: this.ethereumAddress,
-            gas: '1999999'
-        });
+        try {
+            await this.household.methods.setExchange(exchange.options.address).send({
+                from: this.ethereumAddress,
+                gas: '1999999'
+            });
+        } catch (err) {
+            console.log('error could not set exchange in biomass agent', err);
+        }
 
-        //Initial deposit of 10 ether to contract
-        await this.household.methods.deposit().send({
-            from: this.ethereumAddress,
-            gas: '1999999',
-            value: web3.utils.toWei('10', 'ether')
-        });
+
+        try {
+            //Initial deposit of 10 ether to contract
+            await this.household.methods.deposit().send({
+                from: this.ethereumAddress,
+                gas: '1999999',
+                value: web3.utils.toWei('10', 'ether')
+            });
+        } catch (err) {
+            console.log('error could not deposit ether in contract');
+        }
+
 
         return { biomassContract, biomassContractAddress };
     }

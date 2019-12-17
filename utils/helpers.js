@@ -282,7 +282,6 @@ async function createAgents(metaData, householdHistoricData, AgentNationalGrid, 
 
         //creation of agents and feeding the data in
         agent = new Agent(batteryCapacity, batteryBool); //no battery capacity passed
-
         agentAccount = await agent.getAccount(item);
 
         //household = await agent.deployContract();

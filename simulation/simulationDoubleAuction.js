@@ -38,7 +38,6 @@ let csvResultsFileName = 'simulationContinuousDoubleAuction_test1_6months.csv'; 
 async function init() {
 
     let userConfig = await loadData(userConfigFile);
-    console.log('user config, ', userConfig);
     simulationDays = userConfig[1][1];
     csvResultsFileName = `simulationContinuousDoubleAuction_test1_${userConfig[1][1]}days.csv`;
     console.log('will write to file', csvResultsFileName);
@@ -52,7 +51,7 @@ async function init() {
     let succesfulBidsPrice = [];
     let succesfulBidsTransactionAmount = 0; //converted from array
 
-    let biomassSuccesfulBidsPrice = [];
+    let biomassSuccesfulAsksPrice = [];
     let biomassSuccesfulBidsTransactionAmount = 0; //converted from array
 
     let agentBalanceAverageAgent = [];
@@ -73,7 +72,6 @@ async function init() {
 
     let householdDataBattery = householdHistoricData.slice(0, Math.floor(householdHistoricData.length) / 4);
     let { agentsBattery, agentNationalGrid, agentBiomass } = await createAgents(metaDataBattery, householdDataBattery, AgentNationalGrid, AgentBiomass, Agent, id, baseValue, baseValueBattery, biomassData, 12000, true, BIOMASS_PRICE_MIN, BIOMASS_PRICE_MAX);
-
     let simulationDurationCalc = 365 / simulationDays;
     let simDuration = householdHistoricData[0].length / Math.round(simulationDurationCalc);    //start simulation
 
@@ -133,32 +131,35 @@ async function init() {
         console.log('exchange bid count', bidCountInExchange);
         console.log('exchange ask count', askCountInExchange);
 
-        let asksTemp = [];
-        for (let z = 0; z < askCountInExchange; z++) {
-            let ask = await exchange.methods.getAsk(z).call();
-            asksTemp.push(ask[2]);
-        }
-        let askPounds = convertArrayWeiToPounds(asksTemp, WEI_IN_ETHER, PRICE_OF_ETHER);
-        console.log('ask prices in exchange', askPounds / askCountInExchange);
-
         //check successful asks from Biomass agent
         //TODO this is wrong, need to be asks that we are getting
         // 1 - Get successful asks from contract, I added this capability to the contracts (expensive for contracts, cheaper for simulation)
         // 2 - Calcualte successful asks from checking agents bids and see which ones went to the biomass agents address (cheaper for contracts, more expensive for simulation)
-        let askCountBiomass = await agentBiomass.household.methods.getSuccessfulBidCount().call();
-
+        let askCountBiomass = 0;
+        try {
+            askCountBiomass = await agentBiomass.household.methods.getSuccessfulAskCount().call();
+        } catch (err) {
+            console.log('error while fetching successful ask count from biomassAgent');
+        }
         //calculate biomassSellingVolumePounds, calculate biomasSellingPrice,, amount of successfull Asks
         let biomassAskPrice = [];
         let biomassAskQuantity = [];
         let biomassAsksTransactionAmount = [];
         for (let k = 0; k < askCountBiomass; k++) {
-            let ask = await agentBiomass.household.methods.getSuccessfulBid(k).call();
+            let ask = 0;
+            try {
+                ask = await agentBiomass.household.methods.getSuccessfulAsk(k).call();
+            } catch (err) {
+                console.log('error from getting successful single ask from biomassAgent');
+            }
+
             let newAsk = {
                 price: parseInt(ask[1]),
                 quantity: parseInt(ask[2]),
                 address: ask[0],
                 time: parseInt(ask[3])
             }
+
             successfulAsks.push(newAsk);
             if (newAsk.time == i) {
                 biomassAskPrice.push(newAsk.price);
@@ -170,11 +171,11 @@ async function init() {
 
         if (biomassAskPrice.length > 0) {
             let pricePounds = convertArrayWeiToPounds(biomassAskPrice, WEI_IN_ETHER, PRICE_OF_ETHER);
-            biomassSuccesfulBidsPrice = (pricePounds / biomassAskPrice.length);
+            biomassSuccesfulAsksPrice = (pricePounds / biomassAskPrice.length);
             biomassSuccesfulBidsTransactionAmount = convertArrayWeiToPounds(biomassAsksTransactionAmount, WEI_IN_ETHER, PRICE_OF_ETHER);
         }
         else {
-            biomassSuccesfulBidsPrice = 0;
+            biomassSuccesfulAsksPrice = 0;
             biomassSuccesfulBidsTransactionAmount = 0;
         }
 
@@ -252,11 +253,22 @@ async function init() {
         biomassAskGas.push(convertArrayGasToPounds(biomassAskGasTemp, GASPRICE, WEI_IN_ETHER, PRICE_OF_ETHER));
 
         for (let j = 0; j < agentsBattery.length; j++) {
-
-            let bidCount = await agentsBattery[j].agent.household.methods.getSuccessfulBidCount().call();
+            let bidCount = 0;
+            try {
+                bidCount = await agentsBattery[j].agent.household.methods.getSuccessfulBidCount().call();
+            } catch (err) {
+                console.log('error in getting bicound in agent', j);
+            }
 
             for (let k = 0; k < bidCount; k++) {
-                let bid = await agentsBattery[j].agent.household.methods.getSuccessfulBid(k).call();
+                let bid;
+
+                try {
+                    bid = await agentsBattery[j].agent.household.methods.getSuccessfulBid(k).call();
+                } catch (err) {
+                    console.log("error in getting single bid from agent");
+                }
+
                 newBid = {
                     price: parseInt(bid[1]),
                     quantity: parseInt(bid[2]),
@@ -388,11 +400,20 @@ async function init() {
         askCountInExchange = await exchange.methods.getAsksCount().call();
 
         if (bidCountInExchange > 100) {
-            await clearMarketBids(exchange, bidCountInExchange);
+            try {
+                await clearMarketBids(exchange, bidCountInExchange);
+            } catch (err) {
+                console.log("error while clearing bids from market");
+            }
         }
         if (askCountInExchange >= 100) {
-            await clearMarketHighPriceAsks(exchange, askCountInExchange);
+            try {
+                await clearMarketHighPriceAsks(exchange, askCountInExchange);
+            } catch (err) {
+                console.log('error while clearing asks from market');
+            }
         }
+
 
         writeDataToCSV(
             i,

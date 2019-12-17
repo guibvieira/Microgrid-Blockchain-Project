@@ -83,6 +83,9 @@ contract Household{
         );
     }
 
+    function setCharge(uint amount) public {
+        amountOfCharge = amount;
+    }
     
     function getBid(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].origin,
@@ -259,11 +262,11 @@ contract Exchange {
 
     function () public payable{}
 
-    function getBid(uint index) public returns(address, uint, uint, uint){
+    function getBid(uint index) public view returns(address, uint, uint, uint){
         return (Bids[index].owner, Bids[index].price, Bids[index].amount, Bids[index].date);
     }
 
-    function getAsk(uint index) public  returns(address, uint, uint, uint){
+    function getAsk(uint index) public view returns(address, uint, uint, uint){
         return (Asks[index].owner, Asks[index].price, Asks[index].amount, Asks[index].date);
     }
 

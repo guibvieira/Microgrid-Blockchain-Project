@@ -223,12 +223,10 @@ class Agent {
     }
 
     async charge(amount) {
-        // console.log('amount being charged to contract', amount);
         let transactionReceipt = await this.household.methods.charge(amount).send({
             from: this.ethereumAddress,
             gas: '3000000'
         });
-        // console.log('amountOfCharge in contract after charging', amountOfCharge);
         let newObj = {
             timeRow: this.timeRow,
             transactionCost: transactionReceipt.gasUsed
@@ -270,11 +268,9 @@ class Agent {
 
     async updateCharge() {
         let amountOfCharge = await this.household.methods.amountOfCharge().call();
-        console.log('amount of charge', amountOfCharge);
         if (amountOfCharge > this.batteryCapacity || amountOfCharge < 0) {
             this.amountOfCharge = this.chargeHistory[this.timeRow - 1].charge;
             await this.household.methods.setCharge(this.amountOfCharge);
-            console.log('correcting charge in contract');
         }
         else {
             this.amountOfCharge = parseInt(amountOfCharge);
@@ -505,7 +501,7 @@ class Agent {
 
         await factory.methods.createHousehold(12000).send({
             from: this.ethereumAddress,
-            gas: '1000000'
+            gas: '6000000'
         });
         let households = await factory.methods.getDeployedHouseholds().call();
         let household = await new web3.eth.Contract(
